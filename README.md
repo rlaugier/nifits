@@ -16,10 +16,10 @@ Nulling interferometry can take many forms. Simple Bracewell, Double Bracewell, 
 ### Common to reduction and interpretation stage
 The data standard shoudl be compatible with ground-based existing facilities and space-based instrument, with minimal 
 
-* The `OI_ARRAY`
-* The `OI_TARGET`. **A solution must be found for arbitrary motion of the array** as 
+* The `OI_ARRAY`. **A solution must be found for arbitrary motion of the array** as possible with space formation flying.
+* The `OI_TARGET`
 * The `OI_WAVELENGTH`
-* Data of the combiner complex amplitude transfer matrix as it is best measured in calibration. This constitutes the *static part of the instrumental function*.
+* Data of the combiner complex amplitude transfer matrix as it is best definde by simulations or measured in calibration. This constitutes the *static part of the instrumental function*.
 * Data of additional input phasor as a function of time, constituting the *variable part of the instrumental function*.
   - Should include spectral information
   - Could be described either:
