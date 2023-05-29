@@ -39,3 +39,7 @@ The data standard shoudl be compatible with ground-based existing facilities and
 ### For interpretation stage
 
 
+## Acknowledgement
+
+NOIFITS is a development carried out in the context of the [SCIFY project](http://denis-defrere.com/scify.php). [SCIFY](http://denis-defrere.com/scify.php) has received funding from the **European Research Council (ERC)** under the European Union's Horizon 2020 research and innovation program (*grant agreement No 866070*).  
+
