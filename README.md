@@ -17,6 +17,7 @@ Nulling interferometry can take many forms. Simple Bracewell, Double Bracewell, 
 The data standard shoudl be compatible with ground-based existing facilities and space-based instrument, with minimal 
 
 * The `OI_ARRAY`. **A solution must be found for arbitrary motion of the array** as possible with space formation flying.
+  - I think some of this should already be possible in the OIFITS framework. Typically, each integration has its own UV-coordinates assigned to it because the Earth also rotates and the UV-coordinates evolve throughout a night. The thing that might be an issue is if the arrays move significantly within an individual integration. In that case, one would need to save the path of the motion, so that reduction/calibration algorithms can simulate the same path for e.g., model observables.
 * The `OI_TARGET`
 * The `OI_WAVELENGTH`
 * Data of the combiner complex amplitude transfer matrix as it is best definde by simulations or measured in calibration. This constitutes the *static part of the instrumental function*.
@@ -29,7 +30,7 @@ The data standard shoudl be compatible with ground-based existing facilities and
 * The intensity estimates 
 * An error estimation:
   - The variance of each intensity estimates
-  - The covariance matrix of intensity estimates
+  - The covariance matrix of intensity estimates (here we need to think carefully about which correlations we want to keep track of; OIFITS itself is very vague here and allows correlation matrices of many different shapes, depending on which level of correlations they describe (only within a single integration, or across different observables, or across time). However, this makes it extremely complicated to write a code that does something with the correlations, because you never know which kind of correlations to expect from the data in advance. This will have a big impact in the most efficient way to store your data and perform model fitting though).
 
 
 ### For reduction stage
