@@ -1,4 +1,4 @@
-# A standard to handle nulling interferometry standards
+# A standard to handle nulling interferometry data
 
 ## Spirit
 
