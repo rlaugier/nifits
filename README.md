@@ -35,7 +35,7 @@ Since part of the metadata must be recorded during the acquisition, it makes sen
 *Table 1: Summary of the NIFITS extensions*
 
 |  Extension  |  Required   |  Content |
-|  -----------|- -----------|- ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |  `OI_ARRAY` |  yes        |  Interferometer description for compatibility with OIFITS. |
 |  `NI_MOD`   |  yes        |  Contains the time-varying information of the model, in particular the an interna modulation phasor vector, and the projected location of collecting apertures. |
 |  `NI_CATM`  |  referenced |  The complex amplitude transfer matrix containing all static behavior of the system. |
@@ -48,7 +48,7 @@ Since part of the metadata must be recorded during the acquisition, it makes sen
 *Table 2: Content of the NI_MOD data table*
 
 |  Item        |  format                       |  unit            | comment |
-|  ------------|- -----------------------------|- ----------------| -------------------------------------------------------------------------------------------------------------------- |
+| ------------ | ----------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------- |
 |  `APP_INDEX` |  int                          |  NA              | Index of subaperture (starts at 0) |
 |  `TARGET_ID` |  int                          |  d               | Index of target in `OI_TARGET` |
 |  `TIME`      |  float                        |  s               | Backwards compatibility |
