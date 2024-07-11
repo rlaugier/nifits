@@ -1,5 +1,6 @@
 Python OIFITS module
 ====================
+This module was forked from [github.com/pboley/oifits] to become the io module of nifits.
 
 This is a Python module for reading and writing OIFITS files.  The only file you
 need is `oifits.py`; everything else is supplementary.
