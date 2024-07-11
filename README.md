@@ -1,5 +1,9 @@
 # A standard to handle nulling interferometry data
 
+## This project includes a branch of the OIFITS package from Paul Boley
+
+See the original repo [here](https://github.com/pboley/oifits).
+
 ## Spirit
 
 This data standard aims to facilitate the exchange of nulling interferometry data and the proliferation of nulling data reduction methods among the community. It should make available all the instrumental information necessary to deploy the most advanced data reduction algorithms. It should be suitable to hold the raw data (to the exception of detector data) for reduction, or the reduced and co-added data for interpretation.
@@ -37,6 +41,7 @@ Since part of the metadata must be recorded during the acquisition, it makes sen
 |  Extension  |  Required   |  Content |
 | ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |  `OI_ARRAY` |  yes        |  Interferometer description for compatibility with OIFITS. |
+|  `OI_WAVELENGTH` |  yes   |  Contains the wavelength information for the observation |
 |  `NI_MOD`   |  yes        |  Contains the time-varying information of the model, in particular the an interna modulation phasor vector, and the projected location of collecting apertures. |
 |  `NI_CATM`  |  referenced |  The complex amplitude transfer matrix containing all static behavior of the system. |
 |  `NI_KMAT`  |  no         |  Identity is assumed if absent. |
