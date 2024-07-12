@@ -889,6 +889,7 @@ class nifits(object):
         if fov:
             hdu.header['NI_FOV'] = fov
         hdulist.append(hdu)
+        hdulist.writeto('nifits.fits', overwrite=False)
 
 
 class OI_INSPOL(object):
