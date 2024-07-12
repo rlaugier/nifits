@@ -762,12 +762,23 @@ class NI_CATM(object):
     
     """
     Mcn: ArrayLike
+
     @classmethod
-    def from_hdu(cls, hdu):
+    def from_hdu(cls, hdu: type(fits.hdu.ImageHDU)):
+        """
+        Create the NI_CATM object from the HDU extension of an opened fits file.
+        """
         Mcn = hdu.data
         myobj = cls(Mcn)
         return myobj
-        
+
+    def to_hdu(self):
+        """
+        Returns and hdu object to save into fits
+        """
+        myhdu = fits.hdu.ImageHDU(data=self.Mcn)
+        return myhdu
+    
     
 class NI_OUT(object):
     """Contains measured intensities of the outputs of the instrument. 
