@@ -851,6 +851,46 @@ class NI_KMAT(object):
     def __init__(self, K):
         self.K = K
 
+class NI_FOV(object):
+    """Class representation of the NI_FOV object."""
+    def __init__(self):
+        pass
+
+@dataclass
+class nifits(object):
+    """Class representation of the nifits object."""
+    catm: NI_CATM
+    fov: NI_FOV
+
+    @classmethod
+    def from_nifits(cls, filename: str):
+        """
+        Create the nifits object from the HDU extension of an opened fits file.
+        """
+        if type(filename) == fits.hdu.hdulist.HDUList:
+            hdulist = filename
+        else:
+            hdulist = fits.open(filename)
+        for hdu in hdulist:
+            header = hdu.header
+            catm = header['NI_CATM']
+            fov = header['NI_FOV']
+        return cls(catm, fov)
+
+    @classmethod
+    def to_nifits(cls, catm: NI_CATM = None, fov: NI_FOV = None):
+        """
+        Write the extension objects to a nifits file.
+        """
+        hdulist = fits.HDUList()
+        hdu = fits.PrimaryHDU()
+        if catm:
+            hdu.header['NI_CATM'] = catm
+        if fov:
+            hdu.header['NI_FOV'] = fov
+        hdulist.append(hdu)
+
+
 class OI_INSPOL(object):
 
     def __init__(self, timestart, timeend, orient, model, jxx, jyy, jxy, jyx, wavelength, target, array, station, revision=1):
