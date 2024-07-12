@@ -746,6 +746,9 @@ class OI_STATION(object):
         else:
             return '%s/%s (%g m)'%(self.sta_name, self.tel_name, self.diameter)
 
+from dataclasses import dataclass
+from numpy.typing import ArrayLike
+@dataclass
 class NI_CATM(object):
     """Contains the complex amplitude transfer matrix CATM of the instrument.
     The CATM is a complex matrix representing the transformation from the each
@@ -758,8 +761,12 @@ class NI_CATM(object):
     with $\textbf{m}_{mod}$ containded in NI_MOD.
     
     """
-    def __init__(self, Mcn):
-        self.Mcn = Mcn
+    Mcn: ArrayLike
+    @classmethod
+    def from_hdu(cls, hdu):
+        Mcn = hdu.data
+        myobj = cls(Mcn)
+        return myobj
         
     
 class NI_OUT(object):
