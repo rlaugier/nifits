@@ -867,7 +867,7 @@ class nifits(object):
         """
         Create the nifits object from the HDU extension of an opened fits file.
         """
-        if type(filename) == fits.hdu.hdulist.HDUList:
+        if isinstance(filename, fits.hdu.hdulist.HDUList):
             hdulist = filename
         else:
             hdulist = fits.open(filename)
@@ -877,17 +877,16 @@ class nifits(object):
             fov = header['NI_FOV']
         return cls(catm, fov)
 
-    @classmethod
-    def to_nifits(cls, catm: NI_CATM = None, fov: NI_FOV = None):
+    def to_nifits(self):
         """
         Write the extension objects to a nifits file.
         """
         hdulist = fits.HDUList()
         hdu = fits.PrimaryHDU()
-        if catm:
-            hdu.header['NI_CATM'] = catm
-        if fov:
-            hdu.header['NI_FOV'] = fov
+        if self.catm:
+            hdu.header['NI_CATM'] = self.catm
+        if self.fov:
+            hdu.header['NI_FOV'] = self.fov
         hdulist.append(hdu)
         hdulist.writeto('nifits.fits', overwrite=False)
 
