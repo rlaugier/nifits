@@ -746,6 +746,103 @@ class OI_STATION(object):
         else:
             return '%s/%s (%g m)'%(self.sta_name, self.tel_name, self.diameter)
 
+class OI_ARRAY(object):
+    """Contains all the data for a single OI_ARRAY table.  Note the
+    hidden convenience attributes latitude, longitude, and altitude."""
+
+    def __init__(self, frame, arrxyz, stations=(), revision=1):
+
+        if revision > 2:
+            warnings.warn('OI_ARRAY revision %d not implemented yet'%revision, UserWarning)
+
+        self.revision = revision
+        self.frame = frame
+        self.arrxyz = arrxyz
+        self.station = np.empty(0)
+        # fov/fovtype are not defined for OIFITS1; just pass them on to
+        # OI_STATION constructor as None for OIFITS1.
+        fov = fovtype = None
+        for station in stations:
+            # Go field by field, since some OIFITS files have "extra" fields
+            tel_name = station['TEL_NAME']
+            sta_name = station['STA_NAME']
+            sta_index = station['STA_INDEX']
+            diameter = station['DIAMETER']
+            staxyz = station['STAXYZ']
+            if revision >= 2:
+                fov = station['FOV']
+                fovtype = station['FOVTYPE']
+
+            self.station = np.append(self.station, OI_STATION(tel_name=tel_name, sta_name=sta_name, diameter=diameter, staxyz=staxyz, fov=fov, fovtype=fovtype, revision=revision))
+
+    def __eq__(self, other):
+
+        if type(self) != type(other): return False
+
+        equal = not (
+            (self.revision != other.revision) or
+            (self.frame   != other.frame)   or
+            (not _array_eq(self.arrxyz, other.arrxyz)))
+
+        if not equal: return False
+
+        # If position appears to be the same, check that the stations
+        # (and ordering) are also the same
+        if (self.station != other.station).any():
+            return False
+
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __getattr__(self, attrname):
+        if attrname == 'latitude':
+            if self.frame == 'GEOCENTRIC':
+                c = EarthLocation(*self.arrxyz*u.m)
+                return _angpoint(c.lat.value)
+            else:
+                warnings.warn('Latitude only defined for geocentric coordinates', UserWarning)
+                return _angpoint(np.nan)
+        elif attrname == 'longitude':
+            if self.frame == 'GEOCENTRIC':
+                c = EarthLocation(*self.arrxyz*u.m)
+                return _angpoint(c.lon.value)
+            else:
+                warnings.warn('Longitude only defined for geocentric coordinates', UserWarning)
+                return _angpoint(np.nan)
+        elif attrname == 'altitude':
+            if self.frame == 'GEOCENTRIC':
+                c = EarthLocation(*self.arrxyz*u.m)
+                return c.height.value
+            else:
+                warnings.warn('Height only defined for geocentric coordinates', UserWarning)
+                return np.nan
+        else:
+            raise AttributeError(attrname)
+
+    def __repr__(self):
+        # FIXME -- add frame
+        return '%s %s %g m, %d station%s'%(self.latitude.asdms(), self.longitude.asdms(), self.altitude, len(self.station), _plurals(len(self.station)))
+
+    def info(self, verbose=0):
+        """Print the array's center coordinates.  If verbosity >= 1,
+        print information about each station."""
+        print(str(self))
+        if verbose >= 1:
+            for station in self.station:
+                print("   %s"%str(station))
+
+    def get_station_by_name(self, name):
+
+        for station in self.station:
+            if station.sta_name == name:
+                return station
+
+        raise LookupError('No such station %s'%name)
+        
+
+import sys
 from dataclasses import dataclass
 from numpy.typing import ArrayLike
 @dataclass
@@ -856,9 +953,33 @@ class NI_FOV(object):
     def __init__(self):
         pass
 
+NIFITS_EXTENSIONS = [OI_ARRAY,
+                    OI_WAVELENGTH,
+                    NI_CATM,
+                    NI_FOV,
+                    NI_KMAT,
+                    NI_MOD,
+                    NI_OUT,
+                    NI_KOUT]
+
+NIFITS_KEYWORDS = []
+
+STATIC_EXTENSIONS = [True,
+                    True,
+                    True,
+                    True,
+                    False,
+                    False,
+                    False,
+                    False]
+
+def getclass(classname):
+    return getattr(sys.modules[__name__], classname)
+
 @dataclass
 class nifits(object):
     """Class representation of the nifits object."""
+    header_dict: dict
     catm: NI_CATM
     fov: NI_FOV
 
@@ -871,24 +992,61 @@ class nifits(object):
             hdulist = filename
         else:
             hdulist = fits.open(filename)
-        for hdu in hdulist:
-            header = hdu.header
-            catm = header['NI_CATM']
-            fov = header['NI_FOV']
-        return cls(catm, fov)
+        obj_dict = {}
+        for anext in NIFITS_EXTENSIONS:
+            theclass = getclass(anext)
+            theobj = theclass.from_hdu(hdulist[anext])
+            obj_dict[anext] = theobj
+        header_dict = {}
+        for akey in NIFITS_KEYWORDS:
+            akw = hdulist["PRIMARY"].hearder[akey]
+            header_dict[akey] = akw
+        return cls(header_dict=header_dict,
+                    *obj_dict)
 
-    def to_nifits(self):
+    def to_nifits(self, static_only: bool = False,
+                        dynamic_only: bool = False,
+                        static_hash: str = "",
+                        writefile: bool = True,
+                        overwrite: bool = False):
         """
         Write the extension objects to a nifits file.
+
+        *Arguments*: 
+        * `static_only` :  (bool) only save the extensions corresponding
+          to static parameters of the model (NI_CATM and NI_FOV). 
+          Default: False
+        * `dynamic` only : (bool) only save the dynamic extensions. If true,
+          the hash of the static file should be passed as `static_hash`.
+          Default: False
+        * `static_hash` : (str) The hash of the static file.
+          Default: ""
         """
+        # TODO: Possibly, the static_hash should be a dictionary with
+        # a hash for each extension
         hdulist = fits.HDUList()
         hdu = fits.PrimaryHDU()
-        if self.catm:
-            hdu.header['NI_CATM'] = self.catm
-        if self.fov:
-            hdu.header['NI_FOV'] = self.fov
-        hdulist.append(hdu)
-        hdulist.writeto('nifits.fits', overwrite=False)
+        if static_only:
+            extension_list = NIFITS_EXTENSIONS[STATIC_EXTENSIONS]
+        elif dynamic_only:
+            extension_list = NIFITS_EXTENSIONS[np.logical_not(STATIC_EXTENSIONS)]
+        else:
+            extension_list = NIFITS_EXTENSIONS
+        for anext in extension_list:
+            if hasattr(self, anext):
+                theobj = getattr(self, anext)
+                thehdu = theobj.to_hdu()
+                hdulist.append(thehdu)
+                hdu.header[anext] = "Included"
+                # TODO Possibly we need to do this differently:
+                # TODO Maybe pass the header to the `to_hdu` method?
+            else:
+                print(f"Warning: Could not find the {anext} object")
+        if writefile:
+            hdulist.writeto('nifits.fits', overwrite=overwrite)
+        else:
+            return hdulist
+
 
 
 class OI_INSPOL(object):
@@ -941,100 +1099,7 @@ class OI_INSPOL(object):
     def info(self):
         print(str(self))
 
-class OI_ARRAY(object):
-    """Contains all the data for a single OI_ARRAY table.  Note the
-    hidden convenience attributes latitude, longitude, and altitude."""
 
-    def __init__(self, frame, arrxyz, stations=(), revision=1):
-
-        if revision > 2:
-            warnings.warn('OI_ARRAY revision %d not implemented yet'%revision, UserWarning)
-
-        self.revision = revision
-        self.frame = frame
-        self.arrxyz = arrxyz
-        self.station = np.empty(0)
-        # fov/fovtype are not defined for OIFITS1; just pass them on to
-        # OI_STATION constructor as None for OIFITS1.
-        fov = fovtype = None
-        for station in stations:
-            # Go field by field, since some OIFITS files have "extra" fields
-            tel_name = station['TEL_NAME']
-            sta_name = station['STA_NAME']
-            sta_index = station['STA_INDEX']
-            diameter = station['DIAMETER']
-            staxyz = station['STAXYZ']
-            if revision >= 2:
-                fov = station['FOV']
-                fovtype = station['FOVTYPE']
-
-            self.station = np.append(self.station, OI_STATION(tel_name=tel_name, sta_name=sta_name, diameter=diameter, staxyz=staxyz, fov=fov, fovtype=fovtype, revision=revision))
-
-    def __eq__(self, other):
-
-        if type(self) != type(other): return False
-
-        equal = not (
-            (self.revision != other.revision) or
-            (self.frame   != other.frame)   or
-            (not _array_eq(self.arrxyz, other.arrxyz)))
-
-        if not equal: return False
-
-        # If position appears to be the same, check that the stations
-        # (and ordering) are also the same
-        if (self.station != other.station).any():
-            return False
-
-        return True
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __getattr__(self, attrname):
-        if attrname == 'latitude':
-            if self.frame == 'GEOCENTRIC':
-                c = EarthLocation(*self.arrxyz*u.m)
-                return _angpoint(c.lat.value)
-            else:
-                warnings.warn('Latitude only defined for geocentric coordinates', UserWarning)
-                return _angpoint(np.nan)
-        elif attrname == 'longitude':
-            if self.frame == 'GEOCENTRIC':
-                c = EarthLocation(*self.arrxyz*u.m)
-                return _angpoint(c.lon.value)
-            else:
-                warnings.warn('Longitude only defined for geocentric coordinates', UserWarning)
-                return _angpoint(np.nan)
-        elif attrname == 'altitude':
-            if self.frame == 'GEOCENTRIC':
-                c = EarthLocation(*self.arrxyz*u.m)
-                return c.height.value
-            else:
-                warnings.warn('Height only defined for geocentric coordinates', UserWarning)
-                return np.nan
-        else:
-            raise AttributeError(attrname)
-
-    def __repr__(self):
-        # FIXME -- add frame
-        return '%s %s %g m, %d station%s'%(self.latitude.asdms(), self.longitude.asdms(), self.altitude, len(self.station), _plurals(len(self.station)))
-
-    def info(self, verbose=0):
-        """Print the array's center coordinates.  If verbosity >= 1,
-        print information about each station."""
-        print(str(self))
-        if verbose >= 1:
-            for station in self.station:
-                print("   %s"%str(station))
-
-    def get_station_by_name(self, name):
-
-        for station in self.station:
-            if station.sta_name == name:
-                return station
-
-        raise LookupError('No such station %s'%name)
 
 class oifits(object):
 
