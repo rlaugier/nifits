@@ -919,20 +919,56 @@ class NI_OUT(object):
 
 NI_OUT_DEFAULT_HEADER = fits.Header(cards=[("UNITS", "ADU", "The units for output values")])
 
+NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("MOD_PHAS_UNITS", "rad", "The units for modulation phasors"),
+                                        ("ARRCOL_UNITS", "m^2", "The units for collecting area")
+                                            ])
 
+# Possible to use "chromatic_gaussian_radial", "diameter_gaussian_radial".
+# Simplest default is a gaussian with r0 = lambda/D
+NI_FOV_DEFAULT_HEADER = fits.Header(cards=[("FOV_MODE","diameter_gaussian_radial","Type of FOV definition"),
+                                        ("FOV_offset")
+                                        ("FOV_D", 8.0, "diameter of a collecting aperture for FOV")
+                                        ("FOV_D_UNIT", "m", ""),
+                                        ("WL_SHIFT_MODE", "")])
+
+def create_basic_fov_data(D, offset, lamb, n, header=NI_FOV_DEFAULT_HEADER):
+    """
+    A convenience function to help define the FOV function and data model
+    """
+    header["FOV_D"] = D
+    r_0 = (lamb/D)*u.rad.to(u.mas)
+    def xy2phasor(x,y, offset):
+        r = np.hypot(x[None,:]-offset[:,0], y[None,:]-offset[:,1])
+        phasor = np.exp(-(r/r_0)**2)
+        return phasor.astype(np.complex)
+    all_offsets = np.zeros((n, lamb.shape[0], 2))
+    indices = np.arange(n)
+    mytable = Table(names=["INDEX", "offsets"],
+                    data=[indices, all_offsets])
+    return mytable, header, xy2phasor
+
+    
+    
+
+@dataclass
 class NI_EXTENSION(object):
     """
     Generic class for NIFITS extensions
     """
-    def __init__(self, data_table=Table(), header=fits.Header()):
-        self.data_table = data_table
-        self.header = header
-        self.__post_init__
+    data_table: Table = Table()
+    header: fits.Header = fits.Header()
+    # def __init__(self, data_table=Table(), header=fits.Header()):
+    #     self.data_table = data_table
+    #     self.header = header
+    #     self.__post_init__()
 
     @classmethod
     def from_hdu(cls, hdu: type(fits.hdu.TableHDU)):
         """
         Create the data object from the HDU extension of an opened fits file.
+        
+        *Arguments:*
+        * hdu   : TableHDU object containing the relevant data
         """
         data_table = hdu.data
         header = hdu.header
@@ -949,14 +985,20 @@ class NI_EXTENSION(object):
         self.header = myhdu.header
         return myhdu
 
+    def __len__(self):
+        return len(self.data_table)
+
+@dataclass
 class NI_EXTENSION_ARRAY(NI_EXTENSION):
     """
     Generic class for NIFITS array extensions
     """
-    def __init__(self, data_array=Table(), header=fits.Header()):
-        self.data_array = data_array
-        self.header = header
-        self.__post_init__
+    data_array: ArrayLike = np.array([])
+    header: fits.Header = fits.Header()
+    # def __init__(self, data_array=np.array([]), header=fits.Header()):
+    #     self.data_array = data_array
+    #     self.header = header
+    #     self.__post_init__()
 
     @classmethod
     def from_hdu(cls, hdu: type(fits.hdu.ImageHDU)):
@@ -978,6 +1020,9 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
         self.header = myhdu.header
         return myhdu
 
+    def __len__(self):
+        pass
+
 @dataclass
 class NI_OUT(NI_EXTENSION):
     value_out: Table = Table()
@@ -997,6 +1042,72 @@ class NI_OUT(NI_EXTENSION):
             assert arow["u"].shape[1] == n_outputs,\
                             f"Inconsistent outputs number in table at row {i}"
         assert self.value_output.shape[2] == n_outputs, "Inconsistent output number in array"
+
+@dataclass
+class NI_CATM(NI__EXTENSION_ARRAY):
+    data_array: ArrayLike
+    header: fits.Header()
+
+@dataclass
+class NI_KMAT(NI_EXTENSION_ARRAY):
+    data_array: ArrayLike
+    header: fits.Header()
+
+@dataclass
+class NI_MOD(NI_EXTENSION):
+    """
+    Generic class for NIFITS extensions
+    """
+    data_table: Table = Table()
+    header: fits.Header = fits.Header()
+
+    @property
+    def n_series(self):
+        return len(self.data_table)
+        
+class NI_FOV(NI_EXTENSION):
+
+    def get_fov_function(self, lamb: ArrayLike, n: int):
+        """
+        Returns the function to get the chromatic phasor
+        given by injection for a the index n of the time series
+
+        *Arguments:*
+        * lamb : ArrayLike the array of wavelength bins
+        * n    : int the index of the time series to compute for
+        """
+        assert self.header["FOV_MODE"] == "diameter_gaussian_radial"
+        D = self.header[""]
+        r_0 = (lamb/D)*u.rad.to(u.mas)
+        offset = self.data_table["offsets"][n]
+        def xy2phasor(x,y):
+            r = np.hypot(x[None,:]-offset[:,0], y[None,:]-offset[:,1])
+            phasor = np.exp(-(r/r_0)**2)
+            return phasor.astype(np.complex)
+        return xy2phasor
+
+    def get_fov_function_all(self, lamb: ArrayLike):
+        """
+        Returns the function to get the chromatic phasor
+        given by injection for all the time series.
+
+        *Arguments:*
+        * lamb : ArrayLike the array of wavelength bins
+        """
+        assert self.header["FOV_MODE"] == "diameter_gaussian_radial"
+        D = self.header[""]
+        r_0 = (lamb/D)*u.rad.to(u.mas)
+        offset = np.array(self.data_tableble["offsets"])
+        def xy2phasor(x,y):
+            r = np.hypot(x[None, None,:]-offset[:,:,0], y[None,None,:]-offset[:,:,1])
+            phasor = np.exp(-(r[:,:]/r_0[:,None])**2)
+            return phasor.astype(np.complex)
+        return xy2phasor
+
+
+
+
+
 
 
 class NI_MOD(object):
