@@ -1,0 +1,39 @@
+\begin{document}
+            \begin{table*}[]
+                \caption{Summary of the NIFITS extensions }
+                \begin{tabular}{llp{0.7\textwidth}}
+                    \hline
+                    \hline
+                    Extension  & Required & Content\\
+                    \hline
+                    \texttt{OI\_ARRAY} & yes & Interferometer description for compatibility with OIFITS. \\
+                    \texttt{NI\_MOD} & yes & Contains the time-varying information of the model, in particular the an interna modulation phasor vector, and the projected location of collecting apertures.\\
+                    \texttt{NI\_CATM} & referenced & The complex amplitude transfer matrix containing all static behavior of the system. \\
+                    \texttt{NI\_KMAT} & no & Identity is assumed if absent.\\
+                    \texttt{NI\_IOUT} & yes & Contains the collected output flux. \\
+                    \texttt{NI\_KIOUT} & no & Contains post-processed output fluxes. \\
+                    \texttt{NI\_OSAMP} & no & Identity is assumed if absent. \\
+                    \texttt{NI\_FOV} & referenced & Contains the complex spatial filtering function. \\
+                \end{tabular}
+            \end{table*}
+
+            \begin{table}
+                \caption{\texttt{NI\_MOD}: The table of time-dependent collectorwise information. }
+                \begin{tabular}{lp{0.07\textwidth}lp{0.22\textwidth}}
+                    \hline
+                    \hline
+                    Item  & format & unit & comment\\
+                    \hline
+                    \texttt{APP\_INDEX} & int & NA & Index of subaperture (starts at 0)\\
+                    \texttt{TARGET\_ID} & int & d & Index of target in \texttt{OI\_TARGET}\\
+                    \texttt{TIME}      & float & s & Backwards compatibility \\
+                    \texttt{MJD} & float & day & \\
+                    \texttt{INT\_TIME} & float & s & Exposure time \\
+                    \texttt{MOD\_PHAS} & $n_{\lambda} \times $ complex &  & Complex phasor of modulation for the collector \\
+                    \texttt{APPXY} & $2 \times$ float & m & Projected location of subapertures in the plane orthogonal to the line of sight and oriented as $(\alpha, \delta)$ \\
+                    \texttt{ARRCOL} & float & $\mathrm{m}^2$ & Collecting area of the subaperture \\
+                    \texttt{FOV\_INDEX} & int & NA & The entry of the \texttt{NI\_FOV} to use for this subaperture.
+                \end{tabular}
+            \end{table}
+
+\end{document}
