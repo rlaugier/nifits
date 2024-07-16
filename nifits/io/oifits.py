@@ -86,6 +86,7 @@ import numpy as np
 from numpy import double, ma
 from astropy.io import fits
 import astropy.units as u
+from astropy.table import Table
 from astropy.coordinates import EarthLocation
 import datetime
 import copy
@@ -858,24 +859,27 @@ class NI_CATM(object):
     with $\textbf{m}_{mod}$ containded in NI_MOD.
     
     """
-    Mcn: ArrayLike
+    Mcatm: ArrayLike
+    header: fits.Header
 
     @classmethod
     def from_hdu(cls, hdu: type(fits.hdu.ImageHDU)):
         """
         Create the NI_CATM object from the HDU extension of an opened fits file.
         """
-        Mcn = hdu.data
-        myobj = cls(Mcn)
+        Mcatm = hdu.data
+        header = hdu.header
+        myobj = cls(Mcatm, header)
         return myobj
 
     def to_hdu(self):
         """
         Returns and hdu object to save into fits
         """
-        myhdu = fits.hdu.ImageHDU(data=self.Mcn)
+        myhdu = fits.hdu.ImageHDU(data=self.Mcatm)
+        myhdu.header = self.header
         return myhdu
-    
+    # TODO add a check method
     
 class NI_OUT(object):
     """Contains measured intensities of the outputs of the instrument. 
@@ -910,6 +914,90 @@ class NI_OUT(object):
         self.out_flux_order = out_flux_order
         self.out_flux_unit = out_flux_unit
         self.corr = corr
+
+
+
+NI_OUT_DEFAULT_HEADER = fits.Header(cards=[("UNITS", "ADU", "The units for output values")])
+
+
+class NI_EXTENSION(object):
+    """
+    Generic class for NIFITS extensions
+    """
+    def __init__(self, data_table=Table(), header=fits.Header()):
+        self.data_table = data_table
+        self.header = header
+        self.__post_init__
+
+    @classmethod
+    def from_hdu(cls, hdu: type(fits.hdu.TableHDU)):
+        """
+        Create the data object from the HDU extension of an opened fits file.
+        """
+        data_table = hdu.data
+        header = hdu.header
+        return cls(data_table=data_table, header=header)
+
+    def to_hdu(self,):
+        """
+        Returns and hdu object to save into fits
+        
+        *Note*: this also updates the header if dimension changes
+        """
+        myhdu = fits.hdu.TableHDU(data=self.data_table, header=self.header)
+        print("Updating header:\n", fits.HeaderDiff(myhdu.header, self.header))
+        self.header = myhdu.header
+        return myhdu
+
+class NI_EXTENSION_ARRAY(NI_EXTENSION):
+    """
+    Generic class for NIFITS array extensions
+    """
+    def __init__(self, data_array=Table(), header=fits.Header()):
+        self.data_array = data_array
+        self.header = header
+        self.__post_init__
+
+    @classmethod
+    def from_hdu(cls, hdu: type(fits.hdu.ImageHDU)):
+        """
+        Create the data object from the HDU extension of an opened fits file.
+        """
+        data_array = hdu.data
+        header = hdu.header
+        return cls(data_array=data_array, header=header)
+    
+    def to_hdu(self,):
+        """
+        Returns and hdu object to save into fits
+        
+        *Note*: this also updates the header if dimension changes
+        """
+        myhdu = fits.hdu.ImageHDU(data=self.data_array, header=self.header)
+        print("Updating header:\n", fits.HeaderDiff(myhdu.header, self.header))
+        self.header = myhdu.header
+        return myhdu
+
+@dataclass
+class NI_OUT(NI_EXTENSION):
+    value_out: Table = Table()
+    header: dict = NI_OUT_DEFAULT_HEADER
+    
+    @property
+    def asarray(self, module=np):
+        return module.array(self.table_value["u"])
+
+    def check_against_catm(self, catm: NI_CATM):
+        n_wl = catm.Mcatm.shape[0]
+        # n_inputs = catm.Mcatm.shape[2] # Not needed
+        n_outputs = catm.Mcatm.shape[2]
+        for i, arow in enumerate(self.table_value):
+            assert arow["u"].shape[0] == n_wl,\
+                            f"Inconsistent wavelength number in table {i}"
+            assert arow["u"].shape[1] == n_outputs,\
+                            f"Inconsistent outputs number in table at row {i}"
+        assert self.value_output.shape[2] == n_outputs, "Inconsistent output number in array"
+
 
 class NI_MOD(object):
     """Contains input modulation vector for the given observation. The format
@@ -953,14 +1041,14 @@ class NI_FOV(object):
     def __init__(self):
         pass
 
-NIFITS_EXTENSIONS = [OI_ARRAY,
-                    OI_WAVELENGTH,
-                    NI_CATM,
-                    NI_FOV,
-                    NI_KMAT,
-                    NI_MOD,
-                    NI_OUT,
-                    NI_KOUT]
+NIFITS_EXTENSIONS = ["OI_ARRAY",
+                    "OI_WAVELENGTH",
+                    "NI_CATM",
+                    "NI_FOV",
+                    "NI_KMAT",
+                    "NI_MOD",
+                    "NI_OUT",
+                    "NI_KOUT"]
 
 NIFITS_KEYWORDS = []
 
@@ -979,9 +1067,9 @@ def getclass(classname):
 @dataclass
 class nifits(object):
     """Class representation of the nifits object."""
-    header_dict: dict
-    catm: NI_CATM
-    fov: NI_FOV
+    header: fits.Header
+    ni_catm: NI_CATM
+    ni_fov: NI_FOV
 
     @classmethod
     def from_nifits(cls, filename: str):
@@ -996,10 +1084,10 @@ class nifits(object):
         for anext in NIFITS_EXTENSIONS:
             theclass = getclass(anext)
             theobj = theclass.from_hdu(hdulist[anext])
-            obj_dict[anext] = theobj
+            obj_dict[anext.lower()] = theobj
         header_dict = {}
         for akey in NIFITS_KEYWORDS:
-            akw = hdulist["PRIMARY"].hearder[akey]
+            akw = hdulist["PRIMARY"].header[akey]
             header_dict[akey] = akw
         return cls(header_dict=header_dict,
                     *obj_dict)
