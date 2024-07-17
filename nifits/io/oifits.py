@@ -926,26 +926,11 @@ NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("MOD_PHAS_UNITS", "rad", "The units 
 # Possible to use "chromatic_gaussian_radial", "diameter_gaussian_radial".
 # Simplest default is a gaussian with r0 = lambda/D
 NI_FOV_DEFAULT_HEADER = fits.Header(cards=[("FOV_MODE","diameter_gaussian_radial","Type of FOV definition"),
-                                        ("FOV_offset")
-                                        ("FOV_D", 8.0, "diameter of a collecting aperture for FOV")
-                                        ("FOV_D_UNIT", "m", ""),
+                                        ("FOV_offset"),
+                                        ("FOV_TELDIAM", 8.0, "diameter of a collecting aperture for FOV"),
+                                        ("FOV_TELDIAM_UNIT", "m", ""),
                                         ("WL_SHIFT_MODE", "")])
 
-def create_basic_fov_data(D, offset, lamb, n, header=NI_FOV_DEFAULT_HEADER):
-    """
-    A convenience function to help define the FOV function and data model
-    """
-    header["FOV_D"] = D
-    r_0 = (lamb/D)*u.rad.to(u.mas)
-    def xy2phasor(x,y, offset):
-        r = np.hypot(x[None,:]-offset[:,0], y[None,:]-offset[:,1])
-        phasor = np.exp(-(r/r_0)**2)
-        return phasor.astype(np.complex)
-    all_offsets = np.zeros((n, lamb.shape[0], 2))
-    indices = np.arange(n)
-    mytable = Table(names=["INDEX", "offsets"],
-                    data=[indices, all_offsets])
-    return mytable, header, xy2phasor
 
     
     
@@ -1044,7 +1029,7 @@ class NI_OUT(NI_EXTENSION):
         assert self.value_output.shape[2] == n_outputs, "Inconsistent output number in array"
 
 @dataclass
-class NI_CATM(NI__EXTENSION_ARRAY):
+class NI_CATM(NI_EXTENSION_ARRAY):
     data_array: ArrayLike
     header: fits.Header()
 
@@ -1065,7 +1050,33 @@ class NI_MOD(NI_EXTENSION):
     def n_series(self):
         return len(self.data_table)
         
+def create_basic_fov_data(D, offset, lamb, n):
+    """
+    A convenience function to help define the FOV function and data model
+    """
+    r_0 = (lamb/D)*u.rad.to(u.mas)
+    def xy2phasor(x,y, offset):
+        r = np.hypot(x[None,:]-offset[:,0], y[None,:]-offset[:,1])
+        phasor = np.exp(-(r/r_0)**2)
+        return phasor.astype(np.complex)
+    all_offsets = np.zeros((n, lamb.shape[0], 2))
+    indices = np.arange(n)
+    mytable = Table(names=["INDEX", "offsets"],
+                    data=[indices, all_offsets])
+    return mytable, xy2phasor
+
 class NI_FOV(NI_EXTENSION):
+    @classmethod
+    def simple_from_header(cls, header=None, lamb=None, n=0):
+        offset = np.zeros((n,2))
+        telescope_diameter_q = header["FOV_TELDIAM"]*u.Unit(header["FOV_TELDIAM_UNIT"])
+        telescope_diameter_m = telescope_diameter_q.to(u.m).value
+        mytable, xh2phasor = create_basic_fov_data(telescope_diameter_m, offset=offset,
+                                    lamb=lamb, n=n)
+        return cls(data_table=mytable, header=header)
+
+
+
 
     def get_fov_function(self, lamb: ArrayLike, n: int):
         """
@@ -1147,10 +1158,6 @@ class NI_KMAT(object):
     def __init__(self, K):
         self.K = K
 
-class NI_FOV(object):
-    """Class representation of the NI_FOV object."""
-    def __init__(self):
-        pass
 
 NIFITS_EXTENSIONS = ["OI_ARRAY",
                     "OI_WAVELENGTH",
