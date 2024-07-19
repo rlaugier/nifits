@@ -880,40 +880,7 @@ class NI_CATM(object):
         myhdu.header = self.header
         return myhdu
     # TODO add a check method
-    
-class NI_OUT(object):
-    """Contains measured intensities of the outputs of the instrument. 
-    Dimensions are (n_ch, n_out)."""
-    def __init__(self, timeobs, int_time, out_flux, out_flux_err, flag, wavelength,
-                 target, corr=None, array=None, station=(None,None),  revision=1,
-                 # The follow arguments are used for OIFITS2
-                 corrindx_out_flux=None,  
-                 out_flux_typ=None, out_flux_order=None,
-                 out_flux_unit=None):
 
-        if revision > 1:
-            warnings.warn(f"We support NI_FITS rev 1. Given:{revision}", UserWarning)
-
-        self.revision = revision
-        self.timeobs = timeobs
-        self.array = array
-        self.wavelength = wavelength
-        self.target = target
-        self.int_time = int_time
-        if _notnone(out_flux):
-            self._out_flux = np.array(out_flux, dtype=double).reshape(-1)
-        else:
-            self._out_flux = None
-        if _notnone(out_flux_err):
-            self._out_flux_err = np.array(out_flux_err, dtype=double).reshape(-1)
-        self.flag = np.array(flag, dtype=bool).reshape(-1)
-        self.station = station
-        # Only used if revision >= 2
-        self.corrindx_out_flux = corrindx_out_flux
-        self.out_flux_typ = out_flux_typ
-        self.out_flux_order = out_flux_order
-        self.out_flux_unit = out_flux_unit
-        self.corr = corr
 
 
 
@@ -1010,6 +977,8 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
 
 @dataclass
 class NI_OUT(NI_EXTENSION):
+    """Contains measured intensities of the outputs of the instrument. 
+    Dimensions are (n_ch, n_out)."""
     value_out: Table = Table()
     header: dict = NI_OUT_DEFAULT_HEADER
     
@@ -1030,19 +999,33 @@ class NI_OUT(NI_EXTENSION):
 
 @dataclass
 class NI_CATM(NI_EXTENSION_ARRAY):
-    data_array: ArrayLike
-    header: fits.Header()
+    """
+    The complex amplitude transfre function
+    """
 
 @dataclass
 class NI_KMAT(NI_EXTENSION_ARRAY):
-    data_array: ArrayLike
-    header: fits.Header()
+    """
+    The kernel matrix that defines the post-processing operation between outputs.
+    The linear combination is defined by a real-valued matrix.
+    """
+
+@dataclass
+class NI_KOUT(NI_EXTENSION):
+    """
+    Differential output observations
+    """
 
 @dataclass
 class NI_MOD(NI_EXTENSION):
-    """
-    Generic class for NIFITS extensions
-    """
+    """Contains input modulation vector for the given observation. The format
+    is a complex phasor representing the alteration applied by the instrument
+    to the light at its inputs. Either an intended modulation, or an estimated
+    instrumental error. the dimenstions are (n_ch, n_in)
+    
+    The effects modeled in NI_MOD must cumulate with some that may be modeled
+    in NI_CATM. It is recommended to include in CATM the static effects and in
+    NI_MOD any affect that may vary throughout the observing run."""
     data_table: Table = Table()
     header: fits.Header = fits.Header()
 
@@ -1083,6 +1066,8 @@ class NI_FOV(NI_EXTENSION):
         Returns the function to get the chromatic phasor
         given by injection for a the index n of the time series
 
+        *This method will move to the backend*
+
         *Arguments:*
         * lamb : ArrayLike the array of wavelength bins
         * n    : int the index of the time series to compute for
@@ -1101,6 +1086,8 @@ class NI_FOV(NI_EXTENSION):
         """
         Returns the function to get the chromatic phasor
         given by injection for all the time series.
+
+        *This method will move to the backend*
 
         *Arguments:*
         * lamb : ArrayLike the array of wavelength bins
@@ -1121,42 +1108,27 @@ class NI_FOV(NI_EXTENSION):
 
 
 
-class NI_MOD(object):
-    """Contains input modulation vector for the given observation. The format
-    is a complex phasor representing the alteration applied by the instrument
-    to the light at its inputs. Either an intended modulation, or an estimated
-    instrumental error. the dimenstions are (n_ch, n_in)
-    
-    The effects modeled in NI_MOD must cumulate with some that may be modeled
-    in NI_CATM. It is recommended to include in CATM the static effects and in
-    NI_MOD any affect that may vary throughout the observing run."""
-    def __init__(self, app_index, target_id, time, mjd,
-                int_time, mod_phas, app_xy, arrcol,
-                fov_index):
-        self.app_index = app_index
-        self.target_id = target_id
-        self.time = time
-        self.mjd = mjd
-        self.int_time = int_time
-        self.app_xy = app_xy
-        self.arrcol = arrcol
-        self.fov_index = fov_index
-        self.mod_phas = mod_phas
-
-class NI_KOUT(object):
-    """
-    In this form, KOUT is much simpler than IOUT
-    """
-    def __init__(self, kout):
-        self.kout = kout
-
-class NI_KMAT(object):
-    """Contains a post-processing (or kernel) matrix applying to the *intensities* of the 
-    outputs of the instrument. This matrix is used to pass from the raw outputs to the 
-    recommended usable outputs. The chosen linear combinations of outputs are expected
-    to have more favorable instrumental noise characteristics."""
-    def __init__(self, K):
-        self.K = K
+# class NI_MOD(object):
+#     """Contains input modulation vector for the given observation. The format
+#     is a complex phasor representing the alteration applied by the instrument
+#     to the light at its inputs. Either an intended modulation, or an estimated
+#     instrumental error. the dimenstions are (n_ch, n_in)
+#     
+#     The effects modeled in NI_MOD must cumulate with some that may be modeled
+#     in NI_CATM. It is recommended to include in CATM the static effects and in
+#     NI_MOD any affect that may vary throughout the observing run."""
+#     def __init__(self, app_index, target_id, time, mjd,
+#                 int_time, mod_phas, app_xy, arrcol,
+#                 fov_index):
+#         self.app_index = app_index
+#         self.target_id = target_id
+#         self.time = time
+#         self.mjd = mjd
+#         self.int_time = int_time
+#         self.app_xy = app_xy
+#         self.arrcol = arrcol
+#         self.fov_index = fov_index
+#         self.mod_phas = mod_phas
 
 
 NIFITS_EXTENSIONS = ["OI_ARRAY",
