@@ -922,7 +922,7 @@ class NI_EXTENSION(object):
         *Arguments:*
         * hdu   : TableHDU object containing the relevant data
         """
-        data_table = hdu.data
+        data_table = Table(hdu.data)
         header = hdu.header
         return cls(data_table=data_table, header=header)
 
@@ -932,8 +932,9 @@ class NI_EXTENSION(object):
         
         *Note*: this also updates the header if dimension changes
         """
-        myhdu = fits.hdu.TableHDU(data=self.data_table, header=self.header)
-        print("Updating header:\n", fits.HeaderDiff(myhdu.header, self.header))
+        myhdu = fits.hdu.BinTableHDU(name=self.name, data=self.data_table, header=self.header)
+        # TODO: fix the diffing?
+        # print("Updating header:\n", fits.HeaderDiff(myhdu.header, self.header).__repr__)
         self.header = myhdu.header
         return myhdu
 
@@ -967,7 +968,7 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
         
         *Note*: this also updates the header if dimension changes
         """
-        myhdu = fits.hdu.ImageHDU(data=self.data_array, header=self.header)
+        myhdu = fits.hdu.ImageHDU(name=self.name,data=self.data_array, header=self.header)
         print("Updating header:\n", fits.HeaderDiff(myhdu.header, self.header))
         self.header = myhdu.header
         return myhdu
@@ -975,12 +976,38 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
     def __len__(self):
         pass
 
+class OI_ARRAY(NI_EXTENSION):
+    """
+    OI ARRAY definition
+    """
+    name="OI_ARRAY"
+class OI_WAVELENGTH(NI_EXTENSION):
+    """
+    OI WAVELENGTH definition
+    """
+    name="OI_WAVELENGTH"
+
+from dataclasses import field
+from typing import List
+
+
+@dataclass
+class OI_TARGET(NI_EXTENSION):
+    """
+    OI TARGET definition
+    """
+    target: List[str] = field(default_factory=list)
+    raep0: float = 0.
+    decep0: float = 0.
+    name="OI_TARGET"
+    
 @dataclass
 class NI_OUT(NI_EXTENSION):
     """Contains measured intensities of the outputs of the instrument. 
     Dimensions are (n_ch, n_out)."""
     value_out: Table = Table()
     header: dict = NI_OUT_DEFAULT_HEADER
+    name = "NI_OUT"
     
     @property
     def asarray(self, module=np):
@@ -1002,6 +1029,7 @@ class NI_CATM(NI_EXTENSION_ARRAY):
     """
     The complex amplitude transfre function
     """
+    name = "NI_CATM"
 
 @dataclass
 class NI_KMAT(NI_EXTENSION_ARRAY):
@@ -1009,12 +1037,14 @@ class NI_KMAT(NI_EXTENSION_ARRAY):
     The kernel matrix that defines the post-processing operation between outputs.
     The linear combination is defined by a real-valued matrix.
     """
+    name = "NI_KMAT"
 
 @dataclass
 class NI_KOUT(NI_EXTENSION):
     """
     Differential output observations
     """
+    name = "NI_KOUT"
 
 @dataclass
 class NI_MOD(NI_EXTENSION):
@@ -1028,6 +1058,7 @@ class NI_MOD(NI_EXTENSION):
     NI_MOD any affect that may vary throughout the observing run."""
     data_table: Table = Table()
     header: fits.Header = fits.Header()
+    name = "NI_MOD"
 
     @property
     def n_series(self):
@@ -1049,6 +1080,7 @@ def create_basic_fov_data(D, offset, lamb, n):
     return mytable, xy2phasor
 
 class NI_FOV(NI_EXTENSION):
+    name = "NI_FOV"
     @classmethod
     def simple_from_header(cls, header=None, lamb=None, n=0):
         offset = np.zeros((n,2))
@@ -1131,14 +1163,14 @@ class NI_FOV(NI_EXTENSION):
 #         self.mod_phas = mod_phas
 
 
-NIFITS_EXTENSIONS = ["OI_ARRAY",
+NIFITS_EXTENSIONS = np.array(["OI_ARRAY",
                     "OI_WAVELENGTH",
                     "NI_CATM",
                     "NI_FOV",
                     "NI_KMAT",
                     "NI_MOD",
                     "NI_OUT",
-                    "NI_KOUT"]
+                    "NI_KOUT"])
 
 NIFITS_KEYWORDS = []
 
@@ -1157,9 +1189,13 @@ def getclass(classname):
 @dataclass
 class nifits(object):
     """Class representation of the nifits object."""
-    header: fits.Header
-    ni_catm: NI_CATM
-    ni_fov: NI_FOV
+    header: fits.Header = None
+    ni_catm: NI_CATM = None
+    ni_fov: NI_FOV = None
+    oi_target: OI_TARGET = None
+    oi_wavelength: OI_WAVELENGTH = None
+
+    
 
     @classmethod
     def from_nifits(cls, filename: str):
@@ -1170,19 +1206,23 @@ class nifits(object):
             hdulist = filename
         else:
             hdulist = fits.open(filename)
+            
         obj_dict = {}
+        header = hdulist["PRIMARY"].header
+        obj_dict["header"] = header
         for anext in NIFITS_EXTENSIONS:
-            theclass = getclass(anext)
-            theobj = theclass.from_hdu(hdulist[anext])
-            obj_dict[anext.lower()] = theobj
-        header_dict = {}
-        for akey in NIFITS_KEYWORDS:
-            akw = hdulist["PRIMARY"].header[akey]
-            header_dict[akey] = akw
-        return cls(header_dict=header_dict,
-                    *obj_dict)
+            if hdulist.__contains__(anext):
+                theclass = getclass(anext)
+                theobj = theclass.from_hdu(hdulist[anext])
+                obj_dict[anext.lower()] = theobj
+            else:
+                print(f"Missing {anext}")
+        print("Checking header", isinstance(header, fits.Header))
+        print("contains_header:", obj_dict.__contains__("header"))
+        return cls(**obj_dict)
 
-    def to_nifits(self, static_only: bool = False,
+    def to_nifits(self, filename:str = "",
+                        static_only: bool = False,
                         dynamic_only: bool = False,
                         static_hash: str = "",
                         writefile: bool = True,
@@ -1210,18 +1250,23 @@ class nifits(object):
             extension_list = NIFITS_EXTENSIONS[np.logical_not(STATIC_EXTENSIONS)]
         else:
             extension_list = NIFITS_EXTENSIONS
+        hdulist.append(hdu)
         for anext in extension_list:
-            if hasattr(self, anext):
-                theobj = getattr(self, anext)
+            print(anext, hasattr(self,anext.lower()))
+            if hasattr(self, anext.lower()):
+                theobj = getattr(self, anext.lower())
                 thehdu = theobj.to_hdu()
                 hdulist.append(thehdu)
                 hdu.header[anext] = "Included"
                 # TODO Possibly we need to do this differently:
                 # TODO Maybe pass the header to the `to_hdu` method?
             else:
+                hdu.header[anext] = "Not included"
                 print(f"Warning: Could not find the {anext} object")
+        print(hdu.header)
         if writefile:
-            hdulist.writeto('nifits.fits', overwrite=overwrite)
+            hdulist.writeto(filename, overwrite=overwrite)
+            return hdulist
         else:
             return hdulist
 
