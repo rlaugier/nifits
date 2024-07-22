@@ -986,6 +986,9 @@ class OI_WAVELENGTH(NI_EXTENSION):
     OI WAVELENGTH definition
     """
     name="OI_WAVELENGTH"
+    @property
+    def lambs(self):
+        return self.data_table["EFF_WAVE"].data
 
 from dataclasses import field
 from typing import List
@@ -1030,6 +1033,9 @@ class NI_CATM(NI_EXTENSION_ARRAY):
     The complex amplitude transfre function
     """
     name = "NI_CATM"
+    @property
+    def M(self):
+        return self.data_array
 
 @dataclass
 class NI_KMAT(NI_EXTENSION_ARRAY):
@@ -1038,6 +1044,9 @@ class NI_KMAT(NI_EXTENSION_ARRAY):
     The linear combination is defined by a real-valued matrix.
     """
     name = "NI_KMAT"
+    @property
+    def K(self):
+        return self.data_array
 
 @dataclass
 class NI_KOUT(NI_EXTENSION):
@@ -1063,6 +1072,9 @@ class NI_MOD(NI_EXTENSION):
     @property
     def n_series(self):
         return len(self.data_table)
+    @property
+    def phasors(self):
+        return self.data_table["MOD_PHAS"].data
         
 def create_basic_fov_data(D, offset, lamb, n):
     """
@@ -1114,25 +1126,6 @@ class NI_FOV(NI_EXTENSION):
             return phasor.astype(np.complex)
         return xy2phasor
 
-    def get_fov_function_all(self, lamb: ArrayLike):
-        """
-        Returns the function to get the chromatic phasor
-        given by injection for all the time series.
-
-        *This method will move to the backend*
-
-        *Arguments:*
-        * lamb : ArrayLike the array of wavelength bins
-        """
-        assert self.header["FOV_MODE"] == "diameter_gaussian_radial"
-        D = self.header[""]
-        r_0 = (lamb/D)*u.rad.to(u.mas)
-        offset = np.array(self.data_tableble["offsets"])
-        def xy2phasor(x,y):
-            r = np.hypot(x[None, None,:]-offset[:,:,0], y[None,None,:]-offset[:,:,1])
-            phasor = np.exp(-(r[:,:]/r_0[:,None])**2)
-            return phasor.astype(np.complex)
-        return xy2phasor
 
 
 
