@@ -54,15 +54,15 @@ Since part of the metadata must be recorded during the acquisition, it makes sen
 
 |  Item        |  format                       |  unit            | comment |
 | ------------ | ----------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------- |
-|  `APP_INDEX` |  int                          |  NA              | Index of subaperture (starts at 0) |
+|  `APP_INDEX` |  $n_a \times $$int            |  NA              | Indices of subaperture (starts at 0) |
 |  `TARGET_ID` |  int                          |  d               | Index of target in `OI_TARGET` |
 |  `TIME`      |  float                        |  s               | Backwards compatibility |
 |  `MJD`       |  float                        |  day             |  |
 |  `INT_TIME`  |  float                        |  s               | Exposure time |
-|  `MOD_PHAS`  |  $n_{\lambda} \times$ complex |                  | Complex phasor of modulation for the collector |
-|  `APPXY`     |  $2 \times$ float             |  m               | Projected location of subapertures in the plane orthogonal to the line of sight and oriented as $(\alpha, \delta)$ |
-|  `ARRCOL`    |  float                        |  $\mathrm{m}^2$  | Collecting area of the subaperture |
-|  `FOV_INDEX` |  int                          |  NA              | The entry of the `NI_FOV` to use for this subaperture. |
+|  `MOD_PHAS`  |  $n_{\lambda} \times n_a_\times $ complex |                  | Complex phasor of modulation for the collector |
+|  `APPXY`     |  $n_a \times 2 \times $ float |  m               | Projected location of subapertures in the plane orthogonal to the line of sight and oriented as $(\alpha, \delta)$ |
+|  `ARRCOL`    |  $n_a \times $ float          |  $\mathrm{m}^2$  | Collecting area of the subaperture |
+|  `FOV_INDEX` |  $n_a \times$ $ int           |  NA              | The entry of the `NI_FOV` to use for this subaperture. |
 
 Important implementation hints:
 `NI_CATM` contains the static properties of the combiner that should rarely need to be updated.
