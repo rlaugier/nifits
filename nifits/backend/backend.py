@@ -78,7 +78,7 @@ class NI_Backend(object):
         """
         Computes and returns the modulation phasor [n_wl, n_input]
         """
-        mods = md.array([a  for a in self.ni_mod.phasors]).T
+        mods = md.array([a  for a in self.nifits.ni_mod.phasors]).T
         return mods
     def geometric_phasor(self, alpha, beta, include_mod=True,
                             md=np):
@@ -95,36 +95,59 @@ class NI_Backend(object):
         
         **Returns** : A vector of complex phasors
         """
-        xy_array = md.vstack(self.NI_MOD_table["APPXY"])
-        lambs = md.array(self.nifits.ni_wavelength.lambs)
+        xy_array = self.nifits.ni_mod.appxy
+        lambs = md.array(self.nifits.oi_wavelength.lambs)
         k = 2*md.pi/lambs
         a = md.array((alpha, beta), dtype=md.float64)
-        phi = k[:,None,None] * xy_array.dot(a)[None,:]
+        # print(xy_array.shape)
+        # print(a.shape)
+        # phi = k[:,None,None,None] * md.array([anxy_array[:,:].dot(a[:,:]) for anxy_array in xy_array])
+        phi = k[:,None,None,None] * md.einsum("t a x, x m -> t a m", xy_array[:,:,:], a[:,:])
+        # print(a.shape)
         b = md.exp(1j*phi)
         if include_mod:
             mods = self.get_modulation_phasor(md=md)
             b *= mods[:,:,None]
-        return b
+        # print(b.shape)
+        return b.transpose((1,0,2,3))
         
     def get_Is(self, xs, md=np):
-        E = md.einsum("w o i , w i m -> w o m", self.nifits.ni_catm.M, xs)
+        E = md.einsum("w o i , t w i m -> t w o m", self.nifits.ni_catm.M, xs)
         I = md.abs(E)**2
         return I
 
     def get_KIs(self, I, md=np):
-        KI = md.einsum("w i m, o i -> w o m", I, self.nifits.ni_kmat.K[:,:])
+        KI = md.einsum("i m, t w o i -> t w o m", self.nifits.ni_kmat.K[:,:], I)
         return KI
         
         
-    def dot_all_fov(self,  xs):
+    def dot_all_fov(self,  xs, kernels=False):
+        """
+        Deprecated
+        """
         I = self.get_Is(xs)
-        KI = self.get_KIs(I)
-        return KI
+        if kernels:
+            KI = self.get_KIs(I)
+            return KI
+        else:
+            return I
         
-    def get_all_ks(self, alphas, betas):
-        xs = self.geometric_phasor(alphas, betas)
-        KIs = self.dot_all_fov(xs)
-        return KIs
+    def get_all_outs(self, alphas, betas, kernels=False):
+        """
+        Compute the output intensity for an array of points
+        """
+        xs = self.geometric_phasor(alphas, betas, include_mod=False)
+        # print("xs", xs)
+        x_inj = self.nifits.ni_fov.xy2phasor(alphas, betas)
+        # print("x_inj", x_inj)
+        x_mod = self.nifits.ni_mod.all_phasors
+        # print("x_mod", x_mod)
+        Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None])
+        if kernels:
+            KIs = self.get_KIs(Is)
+            return KIs
+        else:
+            return Is
     
         
     

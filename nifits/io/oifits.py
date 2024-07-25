@@ -1037,6 +1037,12 @@ class NI_CATM(NI_EXTENSION_ARRAY):
     def M(self):
         return self.data_array
 
+class NI_IOUT(NI_EXTENSION):
+    """NI_IOUT"""
+
+class NI_KIOUT(NI_EXTENSION):
+    """NI_KIOUT"""
+    
 @dataclass
 class NI_KMAT(NI_EXTENSION_ARRAY):
     """
@@ -1064,7 +1070,20 @@ class NI_MOD(NI_EXTENSION):
     
     The effects modeled in NI_MOD must cumulate with some that may be modeled
     in NI_CATM. It is recommended to include in CATM the static effects and in
-    NI_MOD any affect that may vary throughout the observing run."""
+    NI_MOD any affect that may vary throughout the observing run.
+
+    |  Column      |  format                   |  unit            | Empty |
+    |:------------:|:------------------------- |:---------------- | ---- | 
+    |  `APP_INDEX` |  $n_a$ int         |  NA              |     |
+    |  `TARGET_ID` |  int                      |  d               |     |
+    |  `TIME`      |  float                    |  s               |     |
+    |  `MJD`       |  float                    |  day             |     |
+    |  `INT_TIME`  |  float                    |  s               |     |
+    |  `MOD_PHAS`  |  $(n_{\lambda} \times n_a)$ cpx  |                  |     |
+    |  `APPXY`     |  $(n_a \times 2 )$ float          | m               |      |
+    |  `ARRCOL`    |  $n_a $ float             |  $\mathrm{m}^2$  |     |
+    |  `FOV_INDEX` |  $n_a $ int               |  NA              |     |
+    """
     data_table: Table = Table()
     header: fits.Header = fits.Header()
     name = "NI_MOD"
@@ -1073,8 +1092,13 @@ class NI_MOD(NI_EXTENSION):
     def n_series(self):
         return len(self.data_table)
     @property
-    def phasors(self):
+    def all_phasors(self):
         return self.data_table["MOD_PHAS"].data
+    @property
+    def appxy(self):
+        """Shape n_frames x n_a x 2"""
+        return self.data_table["APPXY"].data
+        
         
 def create_basic_fov_data(D, offset, lamb, n):
     """
@@ -1185,8 +1209,12 @@ class nifits(object):
     header: fits.Header = None
     ni_catm: NI_CATM = None
     ni_fov: NI_FOV = None
-    oi_target: OI_TARGET = None
+    ni_kmat: NI_KMAT = None
     oi_wavelength: OI_WAVELENGTH = None
+    oi_target: OI_TARGET = None
+    ni_mod: NI_MOD = None
+    ni_iout: NI_IOUT = None
+    ni_kiout: NI_KIOUT = None
 
     
 
