@@ -2,6 +2,7 @@
 
 import nifits.io as io
 from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
+from nifits.io.oifits import nifits as NIFITSClass
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as units
@@ -9,11 +10,11 @@ import astropy.units as units
 
 class NI_Backend(object):
     # def __init__(self, myfits: type(io.oifits.NIFITS)):
-    def __init__(self, nifits: io.oifits.nifits = None,
+    def __init__(self, nifits: NIFITSClass = None,
                     module=np):
         self.nifits = nifits
 
-    def add_instrument_definition(self, nifits_instrument: io.oifits.nifits = None,
+    def add_instrument_definition(self, nifits_instrument: NIFITSClass = None,
                                     force: bool = False,
                                     verbose: bool = True):
         if nifits_instrument is not None:
@@ -31,7 +32,7 @@ class NI_Backend(object):
                     else:
                         print(f"Could not find {anext.lower()}")
     
-    def add_observation_data(self, nifits_data: io.oifits.nifits = None,
+    def add_observation_data(self, nifits_data: NIFITSClass = None,
                                     force: bool = False,
                                     verbose: bool = True):
         if nifits_data is not None:
@@ -66,9 +67,12 @@ class NI_Backend(object):
         D = (self.nifits.ni_fov.header["FOV_TELDIAM"] \
                 *units.Unit(self.nifits.ni_fov.header["FOV_TELDIAM_UNIT"]))\
                     .to(units.m).value
-        r_0 = (1/2*self.nifits.oi_wavelength.lambs/D)*units.rad.to(units.mas)
+        r_0 = (1/2*self.nifits.oi_wavelength.lambs/D)# *units.rad.to(units.mas)
         offset = md.array(self.nifits.ni_fov.data_table["offsets"])
         def xy2phasor(x,y):
+            """
+            x and y in rad.
+            """
             r = md.hypot(x[None, None,:]-offset[:,:,0,None], y[None,None,:]-offset[:,:,1,None])
             phasor = md.exp(-(r[:,:]/r_0[:,None])**2)
             return phasor.astype(md.complex)
@@ -112,11 +116,18 @@ class NI_Backend(object):
         return b.transpose((1,0,2,3))
         
     def get_Is(self, xs, md=np):
+        """
+        Get intensity from an array of sources.
+        """
         E = md.einsum("w o i , t w i m -> t w o m", self.nifits.ni_catm.M, xs)
         I = md.abs(E)**2
         return I
 
     def get_KIs(self, I, md=np):
+        """
+        Get the prost-processed observable from an array of output intensities. The
+        post-processing matrix K is taken from self.nifits.ni_kmat.K
+        """
         KI = md.einsum("i m, t w o i -> t w o m", self.nifits.ni_kmat.K[:,:], I)
         return KI
         
@@ -136,12 +147,18 @@ class NI_Backend(object):
         """
         Compute the output intensity for an array of points
         """
+        # The phasor from the incidence on the array:
         xs = self.geometric_phasor(alphas, betas, include_mod=False)
         # print("xs", xs)
+        
+        # The phasor from the spatial filtering:
         x_inj = self.nifits.ni_fov.xy2phasor(alphas, betas)
         # print("x_inj", x_inj)
+        
+        # The phasor from the internal modulation
         x_mod = self.nifits.ni_mod.all_phasors
         # print("x_mod", x_mod)
+        
         Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None])
         if kernels:
             KIs = self.get_KIs(Is)

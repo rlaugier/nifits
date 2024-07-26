@@ -976,6 +976,49 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
     def __len__(self):
         pass
 
+@dataclass
+class NI_EXTENSION_CPX_ARRAY(NI_EXTENSION):
+    """
+    Generic class for NIFITS array extensions.
+
+    The array is kept locally as complex valued, but it is
+    stored to and loaded from a real-valued array with an
+    extra first dimension of length 2 for (real, imaginary) parts.
+    """
+    data_array: ArrayLike = np.array([])
+    header: fits.Header = fits.Header()
+    # def __init__(self, data_array=np.array([]), header=fits.Header()):
+    #     self.data_array = data_array
+    #     self.header = header
+    #     self.__post_init__()
+
+    @classmethod
+    def from_hdu(cls, hdu: type(fits.hdu.ImageHDU)):
+        """
+        Create the data object from the HDU extension of an opened fits file.
+        """
+        assert hdu.data.shape[0] == 2,\
+                f"Data should have 2 layers for real and imag. {hdu.data.shape}"
+        data_array = hdu.data[0] + 1j*hdu.data[1]
+        header = hdu.header
+        return cls(data_array=data_array, header=header)
+    
+    def to_hdu(self,):
+        """
+        Returns and hdu object to save into fits
+        
+        *Note*: this also updates the header if dimension changes
+        """
+        real_valued_data = np.array([self.data_array.real,
+                                    self.data_array.imag], dtype=float)
+        myhdu = fits.hdu.ImageHDU(name=self.name,data=real_valued_data, header=self.header)
+        print("Updating header:\n", fits.HeaderDiff(myhdu.header, self.header))
+        self.header = myhdu.header
+        return myhdu
+
+    def __len__(self):
+        pass
+
 class OI_ARRAY(NI_EXTENSION):
     """
     OI ARRAY definition
@@ -1028,7 +1071,7 @@ class NI_OUT(NI_EXTENSION):
         assert self.value_output.shape[2] == n_outputs, "Inconsistent output number in array"
 
 @dataclass
-class NI_CATM(NI_EXTENSION_ARRAY):
+class NI_CATM(NI_EXTENSION_CPX_ARRAY):
     """
     The complex amplitude transfre function
     """
@@ -1098,6 +1141,16 @@ class NI_MOD(NI_EXTENSION):
     def appxy(self):
         """Shape n_frames x n_a x 2"""
         return self.data_table["APPXY"].data
+    @property
+    def dateobs(self):
+        """
+        Get the dateobs from the weighted mean of the observation time
+        from each of the observation times given in the rows of NI_MOD
+        table.
+        """
+        raise NotImplementedError(self.dateobs)
+        return None
+        
         
         
 def create_basic_fov_data(D, offset, lamb, n):
