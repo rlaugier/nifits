@@ -1,5 +1,14 @@
 # A standard to handle nulling interferometry data
 
+## The `nifits` package
+
+The `nifits` package has two roles:
+
+* Help create and manipulate NIFITS files in python with the `io` module
+* Offer a simple backend to use the instrument *model in a kit* packaged into within the files with the `backend` module.
+
+The documentation is a work in progress and can be found here: [API documentation](https://rlaugier.github.io/nifits_doc.github.io/)
+
 ## This project includes a branch of the OIFITS package from Paul Boley
 
 See the original repo [here](https://github.com/pboley/oifits).
