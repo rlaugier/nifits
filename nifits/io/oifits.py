@@ -167,24 +167,6 @@ NI_FOV_DEFAULT_HEADER = fits.Header(cards=[("FOV_MODE","diameter_gaussian_radial
                                         ("FOV_TELDIAM_UNIT", "m", ""),
                                         ("WL_SHIFT_MODE", "")])
 
-# TODO : fix this in a more elegant manner
-def get_ni_fov_default_header():
-    """
-    A quick fix for python 3.12
-    """
-    return NI_FOV_DEFAULT_HEADER
-
-def get_ni_mod_default_header():
-    """
-    A quick fix for python 3.12
-    """
-    return NI_MOD_DEFAULT_HEADER
-    
-def get_ni_out_default_header():
-    """
-    A quick fix for python 3.12
-    """
-    return NI_OUT_DEFAULT_HEADER
     
 
 @dataclass
@@ -199,6 +181,9 @@ class NI_EXTENSION(object):
     """
     data_table: Table = field(default_factory=Table)
     header: fits.Header = field(default_factory=fits.Header)
+    # TODO: Potentially, this should be a None by default, while still being a 
+    # fits.Header type hint... We can if we have a None, we can catch it with 
+    # a __post_init__ method. TODO this will help cleanup the signature in the doc.
 
     @classmethod
     def from_hdu(cls, hdu: type(fits.hdu.TableHDU)):
@@ -481,7 +466,8 @@ class NI_KOUT(NI_EXTENSION):
 
 @dataclass
 class NI_MOD(NI_EXTENSION):
-    r"""Contains input modulation vector for the given observation. The format
+    r"""
+    Contains input modulation vector for the given observation. The format
     is a complex phasor representing the alteration applied by the instrument
     to the light at its inputs. Either an intended modulation, or an estimated
     instrumental error. the dimenstions are (n_ch, n_in)
@@ -494,52 +480,52 @@ class NI_MOD(NI_EXTENSION):
     :math:`n_a \times \lambda`
 
     
-.. table:: ``NI_MOD``: The table of time-dependent collectorwise
-information.
+    .. table:: ``NI_MOD``: The table of time-dependent collectorwise
+    information.
 
-   +---------------+----------------------------+------------------+-------------------+
-   | Item          | format                     | unit             | comment           |
-   +===============+============================+==================+===================+
-   | ``APP_INDEX`` |  ``int``                   | NA               | Indices of        |
-   |               |                            |                  | subaperture       |
-   |               |                            |                  | (starts at 0)     |
-   +---------------+----------------------------+------------------+-------------------+
-   | ``TARGET_ID`` |  ``int``                   | d                | Index of target   |
-   |               |                            |                  | in ``OI_TARGET``  |
-   +---------------+----------------------------+------------------+-------------------+
-   | ``TIME``      | ``float``                  | s                | Backwards         |
-   |               |                            |                  | compatibility     |
-   +---------------+----------------------------+------------------+-------------------+
-   | ``MJD``       | ``float``                  | day              |                   |
-   +---------------+----------------------------+------------------+-------------------+
-   | ``INT_TIME``  | ``float``                  | s                | Exposure time     |
-   +---------------+----------------------------+------------------+-------------------+
-   | ``MOD_PHAS``  | ``n_{wl},n_a`` ``float``   |                  | Complex phasor of |
-   |               |                            |                  | modulation for    |
-   |               |                            |                  | all collectors    |
-   +---------------+----------------------------+------------------+-------------------+
-   | ``APPXY``     | ``n_a,2`` ``float``        | m                | Projected         |
-   |               |                            |                  | location of       |
-   |               |                            |                  | subapertures in   |
-   |               |                            |                  | the plane         |
-   |               |                            |                  | orthogonal to the |
-   |               |                            |                  | line of sight and |
-   |               |                            |                  | oriented as       |
-   |               |                            |                  | ``(               |
-   |               |                            |                  | \alpha, \delta)`` |
-   +---------------+----------------------------+------------------+-------------------+
-   | ``ARRCOL``    | ``n_a`` ``float``          | ``\mathrm{m}^2`` | Collecting area   |
-   |               |                            |                  | of the            |
-   |               |                            |                  | subaperture       |
-   +---------------+----------------------------+------------------+-------------------+
-   | ``FOV_INDEX`` | ``n_a`` ``int``            | NA               | The entry of the  |
-   |               |                            |                  | ``NI_FOV`` to use |
-   |               |                            |                  | for this          |
-   |               |                            |                  | subaperture.      |
-   +---------------+----------------------------+------------------+-------------------+
+       +---------------+----------------------------+------------------+-------------------+
+       | Item          | format                     | unit             | comment           |
+       +===============+============================+==================+===================+
+       | ``APP_INDEX`` |  ``int``                   | NA               | Indices of        |
+       |               |                            |                  | subaperture       |
+       |               |                            |                  | (starts at 0)     |
+       +---------------+----------------------------+------------------+-------------------+
+       | ``TARGET_ID`` |  ``int``                   | d                | Index of target   |
+       |               |                            |                  | in ``OI_TARGET``  |
+       +---------------+----------------------------+------------------+-------------------+
+       | ``TIME``      | ``float``                  | s                | Backwards         |
+       |               |                            |                  | compatibility     |
+       +---------------+----------------------------+------------------+-------------------+
+       | ``MJD``       | ``float``                  | day              |                   |
+       +---------------+----------------------------+------------------+-------------------+
+       | ``INT_TIME``  | ``float``                  | s                | Exposure time     |
+       +---------------+----------------------------+------------------+-------------------+
+       | ``MOD_PHAS``  | ``n_{wl},n_a`` ``float``   |                  | Complex phasor of |
+       |               |                            |                  | modulation for    |
+       |               |                            |                  | all collectors    |
+       +---------------+----------------------------+------------------+-------------------+
+       | ``APPXY``     | ``n_a,2`` ``float``        | m                | Projected         |
+       |               |                            |                  | location of       |
+       |               |                            |                  | subapertures in   |
+       |               |                            |                  | the plane         |
+       |               |                            |                  | orthogonal to the |
+       |               |                            |                  | line of sight and |
+       |               |                            |                  | oriented as       |
+       |               |                            |                  | ``(               |
+       |               |                            |                  | \alpha, \delta)`` |
+       +---------------+----------------------------+------------------+-------------------+
+       | ``ARRCOL``    | ``n_a`` ``float``          | ``\mathrm{m}^2`` | Collecting area   |
+       |               |                            |                  | of the            |
+       |               |                            |                  | subaperture       |
+       +---------------+----------------------------+------------------+-------------------+
+       | ``FOV_INDEX`` | ``n_a`` ``int``            | NA               | The entry of the  |
+       |               |                            |                  | ``NI_FOV`` to use |
+       |               |                            |                  | for this          |
+       |               |                            |                  | subaperture.      |
+       +---------------+----------------------------+------------------+-------------------+
 
+    """
 
-        """
     data_table: Table = field(default_factory=Table)
     header: fits.Header = field(default_factory=fits.Header)
     name = "NI_MOD"
@@ -764,6 +750,7 @@ class nifits(object):
         Write the extension objects to a nifits file.
 
         **Arguments**: 
+
         * `static_only` :  (bool) only save the extensions corresponding
           to static parameters of the model (NI_CATM and NI_FOV). 
           Default: False
@@ -772,6 +759,7 @@ class nifits(object):
           Default: False
         * `static_hash` : (str) The hash of the static file.
           Default: ""
+
         """
         # TODO: Possibly, the static_hash should be a dictionary with
         # a hash for each extension

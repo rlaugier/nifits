@@ -21,6 +21,7 @@ Other links:
 ------------------
 
 * :ref:`setup_tips`
+* :ref:`introduction`
 * :ref:`modindex`
 * :ref:`genindex`
 * :ref:`search`
