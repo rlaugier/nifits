@@ -110,7 +110,7 @@ class OI_STATION(object):
         
 
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from numpy.typing import ArrayLike
 
 @dataclass
@@ -149,6 +149,8 @@ class NI_CATM(object):
     # TODO add a check method
 
 
+def nulfunc(self, *args, **kwargs):
+    raise TypeError
 
 
 NI_OUT_DEFAULT_HEADER = fits.Header(cards=[("UNITS", "ADU", "The units for output values")])
@@ -165,8 +167,24 @@ NI_FOV_DEFAULT_HEADER = fits.Header(cards=[("FOV_MODE","diameter_gaussian_radial
                                         ("FOV_TELDIAM_UNIT", "m", ""),
                                         ("WL_SHIFT_MODE", "")])
 
+# TODO : fix this in a more elegant manner
+def get_ni_fov_default_header():
+    """
+    A quick fix for python 3.12
+    """
+    return NI_FOV_DEFAULT_HEADER
 
+def get_ni_mod_default_header():
+    """
+    A quick fix for python 3.12
+    """
+    return NI_MOD_DEFAULT_HEADER
     
+def get_ni_out_default_header():
+    """
+    A quick fix for python 3.12
+    """
+    return NI_OUT_DEFAULT_HEADER
     
 
 @dataclass
@@ -179,12 +197,8 @@ class NI_EXTENSION(object):
     * ``from_hdu``: Creates the object from an ``astropy.io.fits.TableHDU`` object
     * ``to_hdu``  : Returns the ``TableHDU`` from itself.
     """
-    data_table: Table = Table()
-    header: fits.Header = fits.Header()
-    # def __init__(self, data_table=Table(), header=fits.Header()):
-    #     self.data_table = data_table
-    #     self.header = header
-    #     self.__post_init__()
+    data_table: Table = field(default_factory=Table)
+    header: fits.Header = field(default_factory=fits.Header)
 
     @classmethod
     def from_hdu(cls, hdu: type(fits.hdu.TableHDU)):
@@ -198,13 +212,17 @@ class NI_EXTENSION(object):
         header = hdu.header
         return cls(data_table=data_table, header=header)
 
-    def to_hdu(self,):
+    def to_hdu(self):
         """
         Returns and hdu object to save into fits
         
         **Note**: this also updates the header if dimension changes
         """
+        # TODO this looks like a bug in astropy.fits: the header should update on its own.
         myhdu = fits.hdu.BinTableHDU(name=self.name, data=self.data_table, header=self.header)
+        # myhdu = fits.hdu.BinTableHDU(name=self.name, data=self.data_table)
+        
+        
         # TODO: fix the diffing?
         # print("Updating header:\n", fits.HeaderDiff(myhdu.header, self.header).__repr__)
         self.header = myhdu.header
@@ -218,12 +236,8 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
     """
     Generic class for NIFITS array extensions
     """
-    data_array: ArrayLike = np.array([])
-    header: fits.Header = fits.Header()
-    # def __init__(self, data_array=np.array([]), header=fits.Header()):
-    #     self.data_array = data_array
-    #     self.header = header
-    #     self.__post_init__()
+    data_array: ArrayLike = field(default_factory=np.array)
+    header: fits.Header = field(default_factory=fits.Header)
 
     @classmethod
     def from_hdu(cls, hdu: type(fits.hdu.ImageHDU)):
@@ -257,12 +271,8 @@ class NI_EXTENSION_CPX_ARRAY(NI_EXTENSION):
     stored to and loaded from a real-valued array with an
     extra first dimension of length 2 for (real, imaginary) parts.
     """
-    data_array: ArrayLike = np.array([])
-    header: fits.Header = fits.Header()
-    # def __init__(self, data_array=np.array([]), header=fits.Header()):
-    #     self.data_array = data_array
-    #     self.header = header
-    #     self.__post_init__()
+    data_array: ArrayLike = field(default_factory=np.array)
+    header: fits.Header = field(default_factory=fits.Header)
 
     @classmethod
     def from_hdu(cls, hdu: type(fits.hdu.ImageHDU)):
@@ -297,20 +307,36 @@ class OI_ARRAY(NI_EXTENSION):
     """ + NI_EXTENSION.__doc__
     name="OI_ARRAY"
 
+from astropy.constants import c as cst_c
+
 class OI_WAVELENGTH(NI_EXTENSION):
     __doc_ = """
     An object storing the OI_WAVELENGTH information, in compatibility with OIFITS practices.
 
     ** Shorthands:**
 
-    * ``self.lambs`` : ``ArrayLike`` [m] returns an array containing the center of each spectral channel.
-    OI WAVELENGTH definition
+    * ``self.lambs`` : ``ArrayLike`` [m] returns an array containing the center of each
+      spectral channel.
+    * ``self.dlmabs`` : ``ArrayLike`` [m] an array containing the spectral bin widths.
+    * ``self.nus`` : ``ArrayLike`` [Hz] an array containing central frequencies of the
+      spectral channels.
+    * ``self.dnus`` : ``ArrayLike`` [Hz] an array containing the frequency bin widths.
 
     """ + NI_EXTENSION.__doc__
     name="OI_WAVELENGTH"
     @property
     def lambs(self):
         return self.data_table["EFF_WAVE"].data
+    @property
+    def dlambs(self):
+        return self.data_table["EFF_BAND"].data
+    @property
+    def nus(self):
+        return cst_c/self.lambs
+    @property
+    def dnus(self):
+        return cst_c/self.dlambs
+        
 
 from dataclasses import field
 from typing import List
@@ -388,8 +414,8 @@ class OI_TARGET(NI_EXTENSION):
 class NI_OUT(NI_EXTENSION):
     __doc__ = """Contains measured intensities of the outputs of the instrument. 
     Dimensions are (n_ch, n_out).""" + NI_EXTENSION.__doc__
-    value_out: Table = Table()
-    header: dict = NI_OUT_DEFAULT_HEADER
+    value_out: Table = field(default_factory=Table)
+    header: dict = field(default_factory=fits.header)
     name = "NI_OUT"
     
     @property
@@ -514,8 +540,8 @@ information.
 
 
         """
-    data_table: Table = Table()
-    header: fits.Header = fits.Header()
+    data_table: Table = field(default_factory=Table)
+    header: fits.Header = field(default_factory=fits.Header)
     name = "NI_MOD"
 
     @property
@@ -560,7 +586,7 @@ def create_basic_fov_data(D, offset, lamb, n):
     def xy2phasor(x,y, offset):
         r = np.hypot(x[None,:]-offset[:,0], y[None,:]-offset[:,1])
         phasor = np.exp(-(r/r_0)**2)
-        return phasor.astype(np.complex)
+        return phasor.astype(complex)
     all_offsets = np.zeros((n, lamb.shape[0], 2))
     indices = np.arange(n)
     mytable = Table(names=["INDEX", "offsets"],
@@ -633,7 +659,7 @@ class NI_FOV(NI_EXTENSION):
             """
             r = np.hypot(alpha[None,:]-offset[:,0], beta[None,:]-offset[:,1])
             phasor = np.exp(-(r/r_0)**2)
-            return phasor.astype(np.complex)
+            return phasor.astype(complex)
         return xy2phasor
 
 
@@ -761,6 +787,7 @@ class nifits(object):
         for anext in extension_list:
             print(anext, hasattr(self,anext.lower()))
             if hasattr(self, anext.lower()):
+                print(anext.lower(), flush=True)
                 theobj = getattr(self, anext.lower())
                 thehdu = theobj.to_hdu()
                 hdulist.append(thehdu)

@@ -79,7 +79,7 @@ class NI_Backend(object):
             """
             r = md.hypot(x[None, None,:]-offset[:,:,0,None], y[None,None,:]-offset[:,:,1,None])
             phasor = md.exp(-(r[:,:]/r_0[:,None])**2)
-            return phasor.astype(md.complex)
+            return phasor.astype(complex)
         self.nifits.ni_fov.xy2phasor = xy2phasor
 
     def get_modulation_phasor(self, md=np):

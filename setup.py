@@ -2,7 +2,7 @@ import sys
 from setuptools import setup
 
 setup(name="nifits",
-    version="0.0.1",
+    version="0.0.2",
     description="A framework to handle the NIFITS Nullin Interferometry data standard",
     url="--",
     author="Romain Laugier",
@@ -16,6 +16,7 @@ setup(name="nifits",
     ],
     packages=["nifits", "nifits.io", "nifits.backend"],
     install_requires=[
-          'numpy', 'scipy', 'matplotlib', 'astropy',
+            'numpy', 'scipy', 'matplotlib', 'astropy',
+            'sympy'
     ],
     zip_safe=False)

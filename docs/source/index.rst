@@ -10,20 +10,19 @@ Welcome to NIFITS's documentation!
    :maxdepth: 3
    :glob:
 
+      setup
       introduction
       nifits.io.*
       backend.backend.*
 
 `More in info on recursive doc <https://stackoverflow.com/questions/2701998/automatically-document-all-modules-recursively-with-sphinx-autodoc>`
 
-
 Other links:
 ------------------
 
-* :ref:`setup`
-* :ref:`need-to-know`
-* :ref:`genindex`
+* :ref:`setup_tips`
 * :ref:`modindex`
+* :ref:`genindex`
 * :ref:`search`
 
 
