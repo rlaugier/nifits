@@ -433,6 +433,10 @@ class NI_IOUT(NI_EXTENSION):
     ``NI_IOUT`` : a recording of the output values, given in intensity,
     flux, counts or arbitrary units.
     """ + NI_EXTENSION.__doc__
+    name = "NI_IOUT"
+    @property
+    def iout(self):
+        return self.data_table["value"].data
 
 class NI_KIOUT(NI_EXTENSION):
     __doc__ = """
@@ -440,11 +444,19 @@ class NI_KIOUT(NI_EXTENSION):
     the post-processing matrix given by ``NI_KMAT``. Typically differential
     null or kernel-null.
     """ + NI_EXTENSION.__doc__
+    name = "NI_KIOUT"
+    @property
+    def kiout(self):
+        return self.data_table["value"].data
 
 class NI_KCOV(NI_EXTENSION_ARRAY):
     __doc__ = """
     The covariance matrix for the processed data contained in KIOUT.
     """ + NI_EXTENSION_ARRAY.__doc__
+    name = "NI_KCOV"
+    @property
+    def kcov(self):
+        return self.data_array
     
 @dataclass
 class NI_KMAT(NI_EXTENSION_ARRAY):
@@ -457,12 +469,6 @@ class NI_KMAT(NI_EXTENSION_ARRAY):
     def K(self):
         return self.data_array
 
-@dataclass
-class NI_KOUT(NI_EXTENSION):
-    __doc__ = """
-    Differential output observations
-    """ + NI_EXTENSION.__doc__
-    name = "NI_KOUT"
 
 @dataclass
 class NI_MOD(NI_EXTENSION):
@@ -525,7 +531,6 @@ class NI_MOD(NI_EXTENSION):
        +---------------+----------------------------+------------------+-------------------+
 
     """
-
     data_table: Table = field(default_factory=Table)
     header: fits.Header = field(default_factory=fits.Header)
     name = "NI_MOD"
@@ -578,6 +583,11 @@ def create_basic_fov_data(D, offset, lamb, n):
     mytable = Table(names=["INDEX", "offsets"],
                     data=[indices, all_offsets])
     return mytable, xy2phasor
+
+class NI_KCOV(NI_EXTENSION_ARRAY):
+    __doc__ = """
+    Storing the covariance of the data.
+    """ + NI_EXTENSION_ARRAY.__doc__
 
 class NI_FOV(NI_EXTENSION):
     __doc__ = r"""
@@ -684,8 +694,9 @@ NIFITS_EXTENSIONS = np.array(["OI_ARRAY",
                     "NI_FOV",
                     "NI_KMAT",
                     "NI_MOD",
-                    "NI_OUT",
-                    "NI_KOUT"])
+                    "NI_IOUT",
+                    "NI_KIOUT",
+                    "NI_KCOV"])
 
 NIFITS_KEYWORDS = []
 
@@ -693,6 +704,7 @@ STATIC_EXTENSIONS = [True,
                     True,
                     True,
                     True,
+                    False,
                     False,
                     False,
                     False,
@@ -713,6 +725,7 @@ class nifits(object):
     ni_mod: NI_MOD = None
     ni_iout: NI_IOUT = None
     ni_kiout: NI_KIOUT = None
+    ni_kcov: NI_KCOV = None
 
     
 
