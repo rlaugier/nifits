@@ -58,9 +58,15 @@ class PointCollection(object):
 
     **Constructors:**
 
-    * ``from_uniform_disk`` : 
-    * ``from_grid``         :
-    * ``from_centered_square``   :
+    * ``from_uniform_disk``   : 
+    * ``from_grid``           :
+    * ``from_centered_square``:
+    * ``from_segment``        :
+
+    **Modificators:**
+
+    * ``__add__``         : basically a concatenation
+    * ``transform``       : Linear transformation in 3D by a matrix
 
     **Handles:**
 
@@ -138,6 +144,33 @@ class PointCollection(object):
         return myobj
 
     @classmethod
+    def from_segment(cls, start_coords: ArrayLike,
+                        end_coords: ArrayLike,
+                        n_samples: int,
+                        md: ModuleType = np,
+                        unit: units.Unit = units.mas):
+        """
+            Create a point collection as a cartesian grid.
+
+        **Arguments:**
+
+        * ``start_coords`` : The (a,b) array of the starting point.
+          (typically alpha, beta)
+        * ``end_coords`` : The (a,b) array of the ending point.
+          (typically alpha, beta)
+        * n_sameples     : The number of samples along the line.
+
+        **Handles:**
+        """
+        aa = md.linspace(start_coords[0], end_coords[0], n_samples)
+        bb = md.linspace(start_coords[1], end_coords[1], n_samples)
+        original_shape = aa.shape
+        aa = aa.flatten()
+        bb = bb.flatten()
+        myobj = cls(aa=aa, bb=bb)
+        return myobj
+
+    @classmethod
     def from_centered_square_grid(cls, radius, resolution,
                             md: ModuleType = np):
         """
@@ -181,6 +214,52 @@ class PointCollection(object):
             return (self.aa.reshape(self.orig_shape), self.bb.reshape(self.orig_shape))
         else:
             raise AttributeError("Did not have an original shape")
+
+    def __add__(self, other):
+        """
+        Add together two collection of points.
+
+        The result inerits properties of the first argument.
+        """
+        from copy import copy
+        if hasattr(self, "md"):
+            md = self.md
+        elif hasattr(other, "md"):
+            md = other.md
+        else:
+            md = np
+        new = copy(self)
+        new.aa = md.concatenate((new.aa, other.aa*other.unit.to(self.unit)))
+        new.bb = md.concatenate((new.bb, other.bb*other.unit.to(self.unit)))
+        if hasattr(self, "cc"):
+            if not hasattr(other, "cc"):
+                other.cc = md.zeros_like(other.aa)
+            new.cc = md.concatenate((new.cc, other.cc*other.unit.to(self.unit)))
+
+        if hasattr(new, "extent"):
+            del new.extent
+        if hasattr(new, "ds"):
+            del new.ds
+        if hasattr(new, "orig_shape"):
+            del new.orig_shape
+        return new
+    def transform(self, matrix, md=np):
+        """
+        Produce a linear transform of the coordinates.
+
+        **Arguments:**
+
+        * ``matrix``: A transformation matrix (3D)
+        * ``md``    : A module to do the operation
+        """
+        if not hasattr(self, "cc"):
+            self.cc = md.zeros_like(self.aa)
+        vectors = md.vstack((self.aa, self.bb, self.cc))
+        transformed = md.dot(matrix, vectors)
+        self.aa = transformed[0,:]
+        self.bb = transformed[1,:]
+        self.cc = transformed[2,:]
+        
 
 
 class NI_Backend(object):
