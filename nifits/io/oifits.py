@@ -25,6 +25,10 @@ import datetime
 import warnings
 from packaging import version
 
+import sys
+from dataclasses import dataclass, field
+from numpy.typing import ArrayLike
+
 _mjdzero = datetime.datetime(1858, 11, 17)
 
 matchtargetbyname = False
@@ -35,8 +39,15 @@ def _plurals(count):
     if count != 1: return 's'
     return ''
 
-def _array_eq(a, b):
-    "Test whether all the elements of two arrays are equal."
+def array_eq(a: ArrayLike,
+              b: ArrayLike):
+    """
+    Test whether all the elements of two arrays are equal.
+
+    Args:
+        a: one input.
+        b: another input.
+    """
 
     if len(a) != len(b):
         return False
@@ -109,9 +120,6 @@ class OI_STATION(object):
 
         
 
-import sys
-from dataclasses import dataclass, field
-from numpy.typing import ArrayLike
 
 @dataclass
 class NI_CATM(object):
@@ -122,8 +130,9 @@ class NI_CATM(object):
     represents the spectral channels.
     
     It is expected that
-    $\textbf{n}_{out} = \textbf{M}_{CATM}.\textbf{m}_{mod} \circ \textbf{x}_{in}$
-    with $\textbf{m}_{mod}$ containded in NI_MOD.
+    
+    :math:`$\textbf{n}_{out} = \textbf{M}_{CATM}.\textbf{m}_{mod} \circ \textbf{x}_{in}$`
+    with :math:`$\textbf{m}_{mod}$` containded in NI_MOD.
     
     """
     Mcatm: ArrayLike
@@ -286,29 +295,43 @@ class NI_EXTENSION_CPX_ARRAY(NI_EXTENSION):
     def __len__(self):
         pass
 
+
 class OI_ARRAY(NI_EXTENSION):
     __doc__ = """
     ``OI_ARRAY`` definition
+
+    Args:
+        data_table: The data to hold
+        header: The associated fits header
+
+    
     """ + NI_EXTENSION.__doc__
     name="OI_ARRAY"
 
+
 from astropy.constants import c as cst_c
 
+
 class OI_WAVELENGTH(NI_EXTENSION):
-    __doc_ = """
-    An object storing the OI_WAVELENGTH information, in compatibility with OIFITS practices.
+    __doc__ = """
+    An object storing the OI_WAVELENGTH information, in compatibility with
+    OIFITS practices.
 
-    ** Shorthands:**
+    **Shorthands:**
 
-    * ``self.lambs`` : ``ArrayLike`` [m] returns an array containing the center of each
-      spectral channel.
-    * ``self.dlmabs`` : ``ArrayLike`` [m] an array containing the spectral bin widths.
-    * ``self.nus`` : ``ArrayLike`` [Hz] an array containing central frequencies of the
+    * ``self.lambs`` : ``ArrayLike`` [m] returns an array containing the center
+      of each spectral channel.
+    * ``self.dlmabs`` : ``ArrayLike`` [m] an array containing the spectral bin
+      widths.
+    * ``self.nus`` : ``ArrayLike`` [Hz] an array containing central frequencies
+      of the
       spectral channels.
-    * ``self.dnus`` : ``ArrayLike`` [Hz] an array containing the frequency bin widths.
+    * ``self.dnus`` : ``ArrayLike`` [Hz] an array containing the frequency bin
+      widths.
 
     """ + NI_EXTENSION.__doc__
-    name="OI_WAVELENGTH"
+    name = "OI_WAVELENGTH"
+
     @property
     def lambs(self):
         return self.data_table["EFF_WAVE"].data
@@ -367,7 +390,7 @@ class OI_TARGET(NI_EXTENSION):
             Use this method to add a row to the table of targets
         **Arguments:**
         
-        * ``target_id``  : (default: 0)
+        * param target_id  : (default: 0)
         * ``target``     : (default: "MyTarget")
         * ``raep0``      : (default: 0.)
         * ``decep0``     : (default: 0.)
@@ -393,8 +416,7 @@ class OI_TARGET(NI_EXTENSION):
                                     pmra, pmdec, pmra_err, pmdec_err, 
                                     parallax, para_err, spectyp, category ])
 
-        
-    
+
 @dataclass
 class NI_OUT(NI_EXTENSION):
     __doc__ = """Contains measured intensities of the outputs of the instrument. 
@@ -418,6 +440,7 @@ class NI_OUT(NI_EXTENSION):
                             f"Inconsistent outputs number in table at row {i}"
         assert self.value_output.shape[2] == n_outputs, "Inconsistent output number in array"
 
+
 @dataclass
 class NI_CATM(NI_EXTENSION_CPX_ARRAY):
     __doc__ = """
@@ -428,6 +451,7 @@ class NI_CATM(NI_EXTENSION_CPX_ARRAY):
     def M(self):
         return self.data_array
 
+
 class NI_IOUT(NI_EXTENSION):
     __doc__ = """
     ``NI_IOUT`` : a recording of the output values, given in intensity,
@@ -437,6 +461,7 @@ class NI_IOUT(NI_EXTENSION):
     @property
     def iout(self):
         return self.data_table["value"].data
+
 
 class NI_KIOUT(NI_EXTENSION):
     __doc__ = """
@@ -449,6 +474,7 @@ class NI_KIOUT(NI_EXTENSION):
     def kiout(self):
         return self.data_table["value"].data
 
+
 class NI_KCOV(NI_EXTENSION_ARRAY):
     __doc__ = """
     The covariance matrix for the processed data contained in KIOUT.
@@ -457,7 +483,8 @@ class NI_KCOV(NI_EXTENSION_ARRAY):
     @property
     def kcov(self):
         return self.data_array
-    
+
+
 @dataclass
 class NI_KMAT(NI_EXTENSION_ARRAY):
     __doc__ = """
@@ -538,13 +565,16 @@ class NI_MOD(NI_EXTENSION):
     @property
     def n_series(self):
         return len(self.data_table)
+
     @property
     def all_phasors(self):
         return self.data_table["MOD_PHAS"].data
+
     @property
     def appxy(self):
         """Shape n_frames x n_a x 2"""
         return self.data_table["APPXY"].data
+
     @property
     def dateobs(self):
         """
@@ -554,12 +584,14 @@ class NI_MOD(NI_EXTENSION):
         """
         raise NotImplementedError(self.dateobs)
         return None
+
     @property
     def arrcol(self):
         """
         The collecting area of the telescopes
         """
         return self.data_table["ARRCOL"].data
+
     @property
     def int_time(self):
         """
