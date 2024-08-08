@@ -32,6 +32,8 @@ from types import ModuleType
 
 from dataclasses import dataclass
 
+from einops import rearrange
+
 mas2rad = units.mas.to(units.rad)
 rad2mas = units.rad.to(units.mas)
 
@@ -208,6 +210,7 @@ class PointCollection(object):
         """
         cpx = self.aa + 1j*self.bb
         return (np.abs(cpx), np.angle(cpx))
+
     @property
     def coords_shaped(self):
         if hasattr(self, "orig_shape"):
@@ -261,6 +264,37 @@ class PointCollection(object):
         self.cc = transformed[2,:]
         
 
+@dataclass
+class MovingCollection(object):
+    series: PointCollection
+
+    @property
+    def coords_rad(self):
+        arraypoints = np.array([thecollec.coords_rad for thecollec in self.series])
+        arranged = rearrange(arraypoints, "time coord points -> coord time points")
+        return arranged
+        
+    @property
+    def coords(self):
+        arraypoints = np.array([thecollec.coords for thecollec in self.series])
+        arranged = rearrange(arraypoints, "time coord points -> coord time points")
+        return arranged
+        
+    @property
+    def coords_radial(self):
+        """
+        Returns the radial coordinates of points. (rho, theta) ([unit], [rad]).
+        """
+        cpx = self.aa + 1j*self.bb
+        return (np.abs(cpx), np.angle(cpx))
+        
+    @property
+    def coords_shaped(self):
+        if hasattr(self.series[0], "orig_shape"):
+            reshaped = self.coords[:,:,self.series[0].orig_shape]
+            return reshaped
+        else:
+            raise AttributeError("Did not have an original shape")
 
 class NI_Backend(object):
     """
@@ -368,6 +402,23 @@ class NI_Backend(object):
             phasor = md.exp(-(r[:,:]/r_0[:,None])**2)
             return phasor.astype(complex)
         self.nifits.ni_fov.xy2phasor = xy2phasor
+
+        def xy2phasor_moving(x,y):
+            """
+            Employed to deal with point-samples that move in the FoV
+            during the series of frames.
+            
+            x and y in rad.
+
+            **Arguments:**
+
+            * x     : ArrayLike [rad] (time, point) Coordinate in the Fov.
+            * y     : ArrayLike [rad] (time, point) Coordinate in the Fov.
+            """
+            r = md.hypot(x[:, None,:]-offset[:,:,0,None], y[:,None,:]-offset[:,:,1,None])
+            phasor = md.exp(-(r[:,:]/r_0[:,None])**2)
+            return phasor.astype(complex)
+        self.nifits.ni_fov.xy2phasor_moving = xy2phasor_moving
 
     def get_modulation_phasor(self, md=np):
         """
@@ -478,7 +529,72 @@ class NI_Backend(object):
             return KIs
         else:
             return Is
-    
+
+    def moving_geometric_phasor(self, alphas, betas, include_mod=True,
+                            md=np):
+        """
+        Returns the complex phasor corresponding to the locations
+        of the family of sources
         
+        **Parameters:**
+        
+        * ``alpha``         : (n_frames, n_points) The coordinate matched to X in the array geometry
+        * ``beta``          : (n_frames, n_points) The coordinate matched to Y in the array geometry
+        * ``anarray``       : The array geometry (n_input, 2)
+        * ``include_mod``   : Include the modulation phasor
+        
+        **Returns** : A vector of complex phasors
+        """
+        xy_array = self.nifits.ni_mod.appxy
+        lambs = md.array(self.nifits.oi_wavelength.lambs)
+        k = 2*md.pi/lambs
+        a = md.array((alphas, betas), dtype=md.float64)
+        phi = k[:,None,None,None] * md.einsum("t a x, x t m -> t a m", xy_array[:,:,:], a[:,:,:])
+        b = md.exp(1j*phi)
+        if include_mod:
+            mods = self.get_modulation_phasor(md=md)
+            b *= mods[:,:,None]
+        return b.transpose((1,0,2,3))
+
+    def get_moving_outs(self, alphas, betas, kernels=False):
+        """
+        Compute the transmission map for an array of coordinates. The map can be seen
+        as equivalent collecting power expressed in [m^2] for each point sampled so as
+        to facilitate comparison with models in Jansky multiplied by the exposure time
+        of each frame (available in `nifits.ni_mod.int_time`).
+
+        **Argrguments:**
+
+        * ``alphas``  : ArrayLike [rad] 1D array of coordinates in right ascension
+        * ``betas``   : ArrayLike [rad] 1D array of coordinates in declination
+        * ``kernels`` : (bool) if True, then computes the post-processed
+          observables as per the KMAT matrix.
+
+        **Returns:**
+
+        * if ``kernels`` is False: the *raw transmission output*.
+        * if ``kernels`` is True: the *differential observable*.
+
+        **Shape:** (n_frames, n_wl, n_outputs, n_points)
+        """
+        # The phasor from the incidence on the array:
+        xs = self.moving_geometric_phasor(alphas, betas, include_mod=False)
+        # print("xs", xs)
+        
+        # The phasor from the spatial filtering:
+        x_inj = self.nifits.ni_fov.xy2phasor_moving(alphas, betas)
+        # print("x_inj", x_inj)
+        
+        # The phasor from the internal modulation
+        # x_mod = self.nifits.ni_mod.all_phasors
+        x_mod = self.get_modulation_phasor()
+        # print("x_mod", x_mod)
+        
+        Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None])
+        if kernels:
+            KIs = self.get_KIs(Is)
+            return KIs
+        else:
+            return Is
     
 
