@@ -57,6 +57,7 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 autoapi_dirs = ["../../nifits"]
+# autoapi_dirs = ["../../nitest"]
 
 
 # -- Options for HTML output -------------------------------------------------

@@ -27,8 +27,13 @@ from nifits.io.oifits import nifits as NIFITSClass
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as units
-from numpy.typing import ArrayLike
-from types import ModuleType
+import types
+ModuleType = types.ModuleType
+
+# from numpy.typing import ArrayLike
+# A hack to fix the documentation of type hinting
+ArrayLike = np.typing.ArrayLike
+
 
 from dataclasses import dataclass
 
@@ -51,34 +56,30 @@ class PointCollection(object):
 
     **Units default to mas.**
 
-    ** Arguments:**
+    Args:
+        aa    : [unit (mas)] (ArrayLike) first coordinate flat array, 
+              typically RA.
+        bb    : [unit (mas)] (ArrayLike) second coordinate flat array, 
+              typically Dec.
 
-    * ``aa``    : [unit (mas)] (ArrayLike) first coordinate flat array, 
-      typically RA.
-    * ``bb``    : [unit (mas)] (ArrayLike) second coordinate flat array, 
-      typically Dec.
+    Constructors:
+        * ``from_uniform_disk``   : 
+        * ``from_grid``           :
+        * ``from_centered_square``:
+        * ``from_segment``        :
 
-    **Constructors:**
+    Modificators:
+        * ``__add__``         : basically a concatenation
+        * ``transform``       : Linear transformation in 3D by a matrix
 
-    * ``from_uniform_disk``   : 
-    * ``from_grid``           :
-    * ``from_centered_square``:
-    * ``from_segment``        :
-
-    **Modificators:**
-
-    * ``__add__``         : basically a concatenation
-    * ``transform``       : Linear transformation in 3D by a matrix
-
-    **Handles:**
-
-    * ``coords``         : The array values as first provided
-    * ``coords_rad``     : The array values, converted from 
-      ``self.unit`` into radians.
-    * ``coords_quantity``: Return the values as a quantity.
-    * ``coords_radial``  : Returns the radial coordinates (rho,theta)
-    * ``extent``         : The [left, right, top, bottom] extent
-      (used for some plots).
+    Handles:
+        * ``coords``         : The array values as first provided
+        * ``coords_rad``     : The array values, converted from 
+          ``self.unit`` into radians.
+        * ``coords_quantity``: Return the values as a quantity.
+        * ``coords_radial``  : Returns the radial coordinates (rho,theta)
+        * ``extent``         : The [left, right, top, bottom] extent
+          (used for some plots).
     """
     aa: ArrayLike = None
     bb: ArrayLike = None
@@ -92,20 +93,19 @@ class PointCollection(object):
 
     @classmethod
     def from_uniform_disk(cls, radius=None,
-                n: int = 10,
-                phi_0: float = 0.,
-                offset: ArrayLike = np.array((0.,0.)),
-                md: ModuleType = np,
-                unit: units.Unit = units.mas):
+                        n: int = 10,
+                        phi_0: float = 0.,
+                        offset: ArrayLike = np.array((0.,0.)),
+                        md: ModuleType = np,
+                        unit: units.Unit = units.mas):
         """
             Create a point collection as a uniformly sampled disk.
 
-        **Arguments:**
-
-        * ``a_coords`` : The array of samples along the first axis
-          (typically alpha)
-        * ``b_coords`` : The array of samples along the second axis
-          (typically beta, the second dimension)
+        Args:
+            a_coords : The array of samples along the first axis
+                  (typically alpha)
+            b_coords : The array of samples along the second axis
+                  (typically beta, the second dimension)
 
         **Handles:**
         """
@@ -120,18 +120,19 @@ class PointCollection(object):
         return myobj
 
     @classmethod
-    def from_grid(cls, a_coords: ArrayLike, b_coords: ArrayLike,
+    def from_grid(cls, a_coords: ArrayLike, b_coords: "ArrayLike",
                         md: ModuleType = np,
                         unit: units.Unit = units.mas):
         """
             Create a point collection as a cartesian grid.
 
-        **Arguments:**
-
-        * ``a_coords`` : The array of samples along the first axis
-          (typically alpha)
-        * ``b_coords`` : The array of samples along the second axis
-          (typically beta, the second dimension)
+        Args:
+            a_coords : The array of samples along the first axis
+                  (typically alpha)
+            b_coords : The array of samples along the second axis
+                  (typically beta, the second dimension)
+            md : Module of choice for the computation
+            unit : Units for ``a_coords`` and ``b_coords``
 
         **Handles:**
         """
@@ -154,13 +155,12 @@ class PointCollection(object):
         """
             Create a point collection as a cartesian grid.
 
-        **Arguments:**
-
-        * ``start_coords`` : The (a,b) array of the starting point.
-          (typically alpha, beta)
-        * ``end_coords`` : The (a,b) array of the ending point.
-          (typically alpha, beta)
-        * n_sameples     : The number of samples along the line.
+        Args:
+            start_coords : The (a,b) array of the starting point.
+                  (typically alpha, beta)
+            end_coords : The (a,b) array of the ending point.
+                  (typically alpha, beta)
+            n_sameples     : The number of samples along the line.
 
         **Handles:**
         """
@@ -173,15 +173,16 @@ class PointCollection(object):
         return myobj
 
     @classmethod
-    def from_centered_square_grid(cls, radius, resolution,
-                            md: ModuleType = np):
+    def from_centered_square_grid(cls,
+                        radius,
+                        resolution,
+                        md: ModuleType = np):
         """
             Create a centered square cartesian grid object
 
-        **Arguments:**
-
-        * ``radius``      : The radial extent of the grid.
-        * ``resolution``  : The number of pixels across the width.
+        Args:
+            radius      : The radial extent of the grid.
+            resolution  : The number of pixels across the width.
         """
         a_coords = md.linspace(-radius, radius, resolution)
         b_coords = md.linspace(-radius, radius, resolution)
@@ -250,10 +251,9 @@ class PointCollection(object):
         """
         Produce a linear transform of the coordinates.
 
-        **Arguments:**
-
-        * ``matrix``: A transformation matrix (3D)
-        * ``md``    : A module to do the operation
+        Args:
+            matrix: A transformation matrix (3D)
+            md    : A module to do the operation
         """
         if not hasattr(self, "cc"):
             self.cc = md.zeros_like(self.aa)
@@ -284,6 +284,7 @@ class MovingCollection(object):
     def coords_radial(self):
         """
         Returns the radial coordinates of points. (rho, theta) ([unit], [rad]).
+
         """
         cpx = self.aa + 1j*self.bb
         return (np.abs(cpx), np.angle(cpx))
@@ -312,10 +313,10 @@ class NI_Backend(object):
         * ``.add_instrument_definition``
         * ``.add_observation_data``
         
-        **Arguments:**
+        Args:
+            nifits    : NIFITSClass 
+            module    : A backend module for advanced math.
 
-        * ``nifits``    : NIFITSClass 
-        * ``module``    : A backend module for advanced math.
         """
 
     def add_instrument_definition(self, nifits_instrument: NIFITSClass = None,
@@ -324,12 +325,12 @@ class NI_Backend(object):
         """
         Adds the instrument definition to the model.
         
-        **Arguments:**
+        Args:
+            nifits_instrument   : NIFITS object
+            force               : ``Bool`` if True, then the existing extensions
+                  will be replaced
+            verbose             : Get more printed information
 
-        * ``nifits_instrument``   : NIFITS object
-        * ``force``               : ``Bool`` if True, then the existing extensions
-          will be replaced
-        * ``verbose``             : Get more printed information
         """
         if nifits_instrument is not None:
             if self.nifits is None:
@@ -352,12 +353,12 @@ class NI_Backend(object):
         """
         Adds the observation data to the model.
         
-        **Arguments:**
+        Args:
+            nifits_instrument   : NIFITS object
+            force               : ``Bool`` if True, then the existing extensions
+                  will be replaced
+            verbose             : Get more printed information
 
-        * ``nifits_instrument``   : NIFITS object
-        * ``force``               : ``Bool`` if True, then the existing extensions
-          will be replaced
-        * ``verbose``             : Get more printed information
         """
         if nifits_data is not None:
             if self.nifits is None:
@@ -379,9 +380,11 @@ class NI_Backend(object):
         Constructs the method to get the chromatic phasor
         given by injection for all the time series.
 
-        **Arguments:**
+        Args:
+            md : A module for the computations
 
         Sets up ``self.ni_fov.xy2phasor``
+
         """
         assert self.nifits.ni_fov.header["FOV_MODE"] == "diameter_gaussian_radial"
         D = (self.nifits.ni_fov.header["FOV_TELDIAM"] \
@@ -393,10 +396,10 @@ class NI_Backend(object):
             """
             x and y in rad.
 
-            **Arguments:**
+            Args:
+                x     : ArrayLike [rad] Coordinate in the Fov.
+                y     : ArrayLike [rad] Coordinate in the Fov.
 
-            * x     : ArrayLike [rad] Coordinate in the Fov.
-            * y     : ArrayLike [rad] Coordinate in the Fov.
             """
             r = md.hypot(x[None, None,:]-offset[:,:,0,None], y[None,None,:]-offset[:,:,1,None])
             phasor = md.exp(-(r[:,:]/r_0[:,None])**2)
@@ -410,10 +413,10 @@ class NI_Backend(object):
             
             x and y in rad.
 
-            **Arguments:**
+            Args:
+                x     : ArrayLike [rad] (time, point) Coordinate in the Fov.
+                y     : ArrayLike [rad] (time, point) Coordinate in the Fov.
 
-            * x     : ArrayLike [rad] (time, point) Coordinate in the Fov.
-            * y     : ArrayLike [rad] (time, point) Coordinate in the Fov.
             """
             r = md.hypot(x[:, None,:]-offset[:,:,0,None], y[:,None,:]-offset[:,:,1,None])
             phasor = md.exp(-(r[:,:]/r_0[:,None])**2)
@@ -428,6 +431,7 @@ class NI_Backend(object):
         so that the output of the transmission map in square modulus provides equivalent
         collecting power in m^2 for each point of the map. This is done to facilitate the
         usag of the map with models in jansky.
+
         """
         # mods = md.array([a  for a in self.nifits.ni_mod.phasors]).T
         mods = md.array(self.nifits.ni_mod.all_phasors)
@@ -440,14 +444,14 @@ class NI_Backend(object):
         Returns the complex phasor corresponding to the locations
         of the family of sources
         
-        **Parameters:**
+        Args:
+            alpha         : The coordinate matched to X in the array geometry
+            beta          : The coordinate matched to Y in the array geometry
+            anarray       : The array geometry (n_input, 2)
+            include_mod   : Include the modulation phasor
         
-        * ``alpha``         : The coordinate matched to X in the array geometry
-        * ``beta``          : The coordinate matched to Y in the array geometry
-        * ``anarray``       : The array geometry (n_input, 2)
-        * ``include_mod``   : Include the modulation phasor
-        
-        **Returns** : A vector of complex phasors
+        Returns:
+            A vector of complex phasors
         """
         xy_array = self.nifits.ni_mod.appxy
         lambs = md.array(self.nifits.oi_wavelength.lambs)
@@ -468,54 +472,58 @@ class NI_Backend(object):
     def get_Is(self, xs, md=np):
         """
         Get intensity from an array of sources.
+
         """
         E = md.einsum("w o i , t w i m -> t w o m", self.nifits.ni_catm.M, xs)
         I = md.abs(E)**2
         return I
 
-    def get_KIs(self, Iarray:ArrayLike, md:ModuleType=np):
+    def get_KIs(self,
+                    Iarray:ArrayLike,
+                    md: ModuleType = np):
         r"""
         Get the prost-processed observable from an array of output intensities. The
         post-processing matrix K is taken from ``self.nifits.ni_kmat.K``
 
-        **Arguments:**
+        Args:
+            I     : (n_frames, n_wl, n_outputs, n_batch)
+            md    : a python module with a numpy-like interface.
 
-        * ``I``     : (n_frames, n_wl, n_outputs, n_batch)
-        * ``md``    : a python module with a numpy-like interface.
+        Returns:
+            The vector :math:`\boldsymbol{\kappa} = \mathbf{K}\cdot\mathbf{I}`
 
-        **Returns:**
-        The vector :math:`\boldsymbol{\kappa} = \mathbf{K}\cdot\mathbf{I}`
         """
         KI = md.einsum("k o, t w o m -> t w k m", self.nifits.ni_kmat.K[:,:], Iarray)
         return KI
         
-    def get_all_outs(self, alphas, betas, kernels=False):
+    def get_all_outs(self, alphas, betas,
+                        kernels=False,
+                        md=np):
         """
         Compute the transmission map for an array of coordinates. The map can be seen
         as equivalent collecting power expressed in [m^2] for each point sampled so as
         to facilitate comparison with models in Jansky multiplied by the exposure time
         of each frame (available in `nifits.ni_mod.int_time`).
 
-        **Argrguments:**
+        Args:
+            alphas  : ArrayLike [rad] 1D array of coordinates in right ascension
+            betas   : ArrayLike [rad] 1D array of coordinates in declination
+            kernels : (bool) if True, then computes the post-processed
+                  observables as per the KMAT matrix.
 
-        * ``alphas``  : ArrayLike [rad] 1D array of coordinates in right ascension
-        * ``betas``   : ArrayLike [rad] 1D array of coordinates in declination
-        * ``kernels`` : (bool) if True, then computes the post-processed
-          observables as per the KMAT matrix.
+        Returns:
+            if ``kernels`` is False: the *raw transmission output*.
+            if ``kernels`` is True: the *differential observable*.
 
-        **Returns:**
+        .. hint:: **Shape:** (n_frames, n_wl, n_outputs, n_points)
 
-        * if ``kernels`` is False: the *raw transmission output*.
-        * if ``kernels`` is True: the *differential observable*.
-
-        **Shape:** (n_frames, n_wl, n_outputs, n_points)
         """
         # The phasor from the incidence on the array:
-        xs = self.geometric_phasor(alphas, betas, include_mod=False)
+        xs = self.geometric_phasor(alphas, betas, include_mod=False, md=md)
         # print("xs", xs)
         
         # The phasor from the spatial filtering:
-        x_inj = self.nifits.ni_fov.xy2phasor(alphas, betas)
+        x_inj = self.nifits.ni_fov.xy2phasor(alphas, betas, md=md)
         # print("x_inj", x_inj)
         
         # The phasor from the internal modulation
@@ -523,9 +531,9 @@ class NI_Backend(object):
         x_mod = self.get_modulation_phasor()
         # print("x_mod", x_mod)
         
-        Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None])
+        Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None], md=md)
         if kernels:
-            KIs = self.get_KIs(Is)
+            KIs = self.get_KIs(Is, md=md)
             return KIs
         else:
             return Is
@@ -544,6 +552,7 @@ class NI_Backend(object):
         * ``include_mod``   : Include the modulation phasor
         
         **Returns** : A vector of complex phasors
+
         """
         xy_array = self.nifits.ni_mod.appxy
         lambs = md.array(self.nifits.oi_wavelength.lambs)
@@ -556,26 +565,27 @@ class NI_Backend(object):
             b *= mods[:,:,None]
         return b.transpose((1,0,2,3))
 
-    def get_moving_outs(self, alphas, betas, kernels=False):
+    def get_moving_outs(self, alphas, betas,
+                        kernels=False,
+                        md=np):
         """
         Compute the transmission map for an array of coordinates. The map can be seen
         as equivalent collecting power expressed in [m^2] for each point sampled so as
         to facilitate comparison with models in Jansky multiplied by the exposure time
         of each frame (available in `nifits.ni_mod.int_time`).
 
-        **Argrguments:**
+        Args:
+            alphas  : ArrayLike [rad] 1D array of coordinates in right ascension
+            betas   : ArrayLike [rad] 1D array of coordinates in declination
+            kernels : (bool) if True, then computes the post-processed
+                      observables as per the KMAT matrix.
 
-        * ``alphas``  : ArrayLike [rad] 1D array of coordinates in right ascension
-        * ``betas``   : ArrayLike [rad] 1D array of coordinates in declination
-        * ``kernels`` : (bool) if True, then computes the post-processed
-          observables as per the KMAT matrix.
+        Returns:
+            if ``kernels`` is False: the *raw transmission output*.
+            if ``kernels`` is True: the *differential observable*.
 
-        **Returns:**
+        .. hint:: **Shape:** (n_frames, n_wl, n_outputs, n_points)
 
-        * if ``kernels`` is False: the *raw transmission output*.
-        * if ``kernels`` is True: the *differential observable*.
-
-        **Shape:** (n_frames, n_wl, n_outputs, n_points)
         """
         # The phasor from the incidence on the array:
         xs = self.moving_geometric_phasor(alphas, betas, include_mod=False)
@@ -590,9 +600,9 @@ class NI_Backend(object):
         x_mod = self.get_modulation_phasor()
         # print("x_mod", x_mod)
         
-        Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None])
+        Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None], md=md)
         if kernels:
-            KIs = self.get_KIs(Is)
+            KIs = self.get_KIs(Is, md=md)
             return KIs
         else:
             return Is

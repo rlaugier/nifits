@@ -9,8 +9,8 @@ Welcome to the NIFITS documentation!
    :maxdepth: 3
    :glob:
 
-      setup
-      introduction
+      :ref:`setup_tips`
+      :ref:`introduction`
 
 `More in info on recursive doc <https://stackoverflow.com/questions/2701998/automatically-document-all-modules-recursively-with-sphinx-autodoc>`
 
@@ -38,7 +38,6 @@ Indices and tables
 * :ref:`search`
 
 References:
-++++++++++++
-
+-----------
 .. [1] Laugier et al. in prep.
 

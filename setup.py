@@ -14,7 +14,7 @@ setup(name="nifits",
       'Topic :: High Angular Resolution Astronomy :: Interferometry :: High-contrast',
       'Programming Language :: Python :: 3.8'
     ],
-    packages=["nifits", "nifits.io", "nifits.backend"],
+    packages=["nifits", "nifits.io", "nifits.backend", "nitest"],
     install_requires=[
             'numpy', 'scipy', 'matplotlib', 'astropy',
             'sympy'

@@ -19,7 +19,8 @@ For further information, contact R. Laugier
 import numpy as np
 from astropy.io import fits
 import astropy.units as u
-from astropy.table import Table
+import astropy.table
+Table = astropy.table.Table
 from astropy.coordinates import EarthLocation
 import datetime
 import warnings
@@ -27,7 +28,9 @@ from packaging import version
 
 import sys
 from dataclasses import dataclass, field
-from numpy.typing import ArrayLike
+# from numpy.typing import ArrayLike
+# A hack to fix the documentation of type hinting
+ArrayLike = np.typing.ArrayLike
 
 _mjdzero = datetime.datetime(1858, 11, 17)
 
@@ -131,8 +134,8 @@ class NI_CATM(object):
     
     It is expected that
     
-    :math:`$\textbf{n}_{out} = \textbf{M}_{CATM}.\textbf{m}_{mod} \circ \textbf{x}_{in}$`
-    with :math:`$\textbf{m}_{mod}$` containded in NI_MOD.
+    :math:`\\textbf{n}_{out} = \\textbf{M}_{CATM}.\\textbf{m}_{mod} \circ \\textbf{x}_{in}`
+    with :math:`\\textbf{m}_{mod}` containded in NI_MOD.
     
     """
     Mcatm: ArrayLike
@@ -199,8 +202,8 @@ class NI_EXTENSION(object):
         """
         Create the data object from the HDU extension of an opened fits file.
         
-        **Arguments:**
-        * hdu   : TableHDU object containing the relevant data
+        Args:
+            hdu : TableHDU object containing the relevant data
         """
         data_table = Table(hdu.data)
         header = hdu.header
@@ -210,7 +213,9 @@ class NI_EXTENSION(object):
         """
         Returns and hdu object to save into fits
         
-        **Note**: this also updates the header if dimension changes
+        .. admonition::
+        
+            This also updates the header if dimension changes
         """
         # TODO this looks like a bug in astropy.fits: the header should update on its own.
         myhdu = fits.hdu.BinTableHDU(name=self.name, data=self.data_table, header=self.header)
@@ -246,7 +251,9 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
         """
         Returns and hdu object to save into fits
         
-        **Note**: this also updates the header if dimension changes
+        .. admonition:: Note
+        
+            This also updates the header if dimension changes
         """
         myhdu = fits.hdu.ImageHDU(name=self.name,data=self.data_array, header=self.header)
         print("Updating header:\n", fits.HeaderDiff(myhdu.header, self.header))
@@ -283,7 +290,9 @@ class NI_EXTENSION_CPX_ARRAY(NI_EXTENSION):
         """
         Returns and hdu object to save into fits
         
-        **Note**: this also updates the header if dimension changes
+        .. admonition:: Note
+        
+            This also updates the header if dimension changes
         """
         real_valued_data = np.array([self.data_array.real,
                                     self.data_array.imag], dtype=float)
@@ -364,9 +373,8 @@ class OI_TARGET(NI_EXTENSION):
         """
         Creates the OI_TARGET object with an empty table.
 
-        **Returns:**
-        
-        * ``OI_TARGET`` object with an empty table.
+        **Returns:        
+            OI_TARGET: object with an empty table.
 
         Use ``add_target()`` to finish the job.
         """
@@ -388,26 +396,25 @@ class OI_TARGET(NI_EXTENSION):
                         parallax=0., para_err=0., spectyp="", category="" ):
         """
             Use this method to add a row to the table of targets
-        **Arguments:**
-        
-        * param target_id  : (default: 0)
-        * ``target``     : (default: "MyTarget")
-        * ``raep0``      : (default: 0.)
-        * ``decep0``     : (default: 0.)
-        * ``equinox``    : (default: 0.)
-        * ``ra_err``     : (default: 0.)
-        * ``dec_err``    : (default: 0.)
-        * ``sysvel``     : (default: 0.)
-        * ``veltyp``     : (default: "")
-        * ``veldef``     : (default: "")
-        * ``pmra``       : (default: 0.)
-        * ``pmdec``      : (default: 0.)
-        * ``pmra_err``   : (default: 0.)
-        * ``pmdec_err``  : (default: 0.)
-        * ``parallax``   : (default: 0.)
-        * ``para_err``   : (default: 0.)
-        * ``spectyp``    : (default: "")
-        * ``category``   : (default: "")
+        Args:
+            param target_id  : (default: 0)
+            target     : (default: "MyTarget")
+            raep0      : (default: 0.)
+            decep0     : (default: 0.)
+            equinox    : (default: 0.)
+            ra_err     : (default: 0.)
+            dec_err    : (default: 0.)
+            sysvel     : (default: 0.)
+            veltyp     : (default: "")
+            veldef     : (default: "")
+            pmra       : (default: 0.)
+            pmdec      : (default: 0.)
+            pmra_err   : (default: 0.)
+            pmdec_err  : (default: 0.)
+            parallax   : (default: 0.)
+            para_err   : (default: 0.)
+            spectyp    : (default: "")
+            category   : (default: "")
             
         """
         self.data_table.add_row(vals=[target_id, target, raep0, decep0,
@@ -642,11 +649,10 @@ class NI_FOV(NI_EXTENSION):
         Constructor for a simple ``NI_FOV`` object with chromatic gaussian profile and 
         no offset.
 
-        **Arguments:**
-
-        * header    : (astropy.io.fits.Header) Header containing the required information
-          such as ``FOV_TELDIAM`` and ``FOV_TELDIAM_UNIT`` which are used to create the
-          gaussian profiles of radius :math:`\lambda/D`
+        Args:
+            header : (astropy.io.fits.Header) Header containing the required information
+                      such as ``FOV_TELDIAM`` and ``FOV_TELDIAM_UNIT`` which are used to
+                      create the gaussian profiles of radius :math:`\lambda/D`
         """
         offset = np.zeros((n,2))
         telescope_diameter_q = header["FOV_TELDIAM"]*u.Unit(header["FOV_TELDIAM_UNIT"])
@@ -665,10 +671,9 @@ class NI_FOV(NI_EXTENSION):
 
         **This method will move to the backend**
 
-        **Arguments:**
-
-        * ``lamb`` : ArrayLike the array of wavelength bins
-        * ``n``    : int the index of the time series to compute for
+        Args:
+            lamb : The array of wavelength bins [m]
+            n    : The index of the time series to compute for
         """
         assert self.header["FOV_MODE"] == "diameter_gaussian_radial"
         D = self.header[""]
@@ -678,12 +683,12 @@ class NI_FOV(NI_EXTENSION):
             """
             Returns the phasor for a given position of the field of view
 
-            **Arguments:**
+            Args:
+                alpha : Position in RA
+                beta  : Position in Dec
 
-            * ``alpha`` : Position in RA
-            * ``beta``  : Position in Dec
-
-            **Returns:** The complex phasor
+            Returns:
+                The complex phasor
             """
             r = np.hypot(alpha[None,:]-offset[:,0], beta[None,:]-offset[:,1])
             phasor = np.exp(-(r/r_0)**2)
@@ -718,6 +723,8 @@ class NI_FOV(NI_EXTENSION):
 #         self.arrcol = arrcol
 #         self.fov_index = fov_index
 #         self.mod_phas = mod_phas
+
+TEST_BACKUP = True
 
 
 NIFITS_EXTENSIONS = np.array(["OI_ARRAY",
@@ -794,16 +801,15 @@ class nifits(object):
         """
         Write the extension objects to a nifits file.
 
-        **Arguments**: 
-
-        * `static_only` :  (bool) only save the extensions corresponding
-          to static parameters of the model (NI_CATM and NI_FOV). 
-          Default: False
-        * `dynamic` only : (bool) only save the dynamic extensions. If true,
-          the hash of the static file should be passed as `static_hash`.
-          Default: False
-        * `static_hash` : (str) The hash of the static file.
-          Default: ""
+        Args: 
+            static_only :  (bool) only save the extensions corresponding
+                          to static parameters of the model (NI_CATM and NI_FOV). 
+                          Default: False
+            dynamic_only : (bool) only save the dynamic extensions. If true,
+                          the hash of the static file should be passed as `static_hash`.
+                          Defaultult: False
+            static_hash : (str) The hash of the static file.
+                        Default: ""
 
         """
         # TODO: Possibly, the static_hash should be a dictionary with
