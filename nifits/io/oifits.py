@@ -30,6 +30,7 @@ import sys
 from dataclasses import dataclass, field
 # from numpy.typing import ArrayLike
 # A hack to fix the documentation of type hinting
+import numpy.typing
 ArrayLike = np.typing.ArrayLike
 
 _mjdzero = datetime.datetime(1858, 11, 17)
@@ -263,6 +264,10 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
     def __len__(self):
         pass
 
+    @property
+    def shape(self):
+        return self.data_array.shape
+
 @dataclass
 class NI_EXTENSION_CPX_ARRAY(NI_EXTENSION):
     """
@@ -303,6 +308,10 @@ class NI_EXTENSION_CPX_ARRAY(NI_EXTENSION):
 
     def __len__(self):
         pass
+
+    @property
+    def shape(self):
+        return self.data_array.shape
 
 
 class OI_ARRAY(NI_EXTENSION):
@@ -480,6 +489,9 @@ class NI_KIOUT(NI_EXTENSION):
     @property
     def kiout(self):
         return self.data_table["value"].data
+    @property
+    def shape(self):
+        return self.data_table["value"].data.shape
 
 
 class NI_KCOV(NI_EXTENSION_ARRAY):

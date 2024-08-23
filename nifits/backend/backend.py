@@ -25,6 +25,7 @@ import nifits.io as io
 from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
 from nifits.io.oifits import nifits as NIFITSClass
 import numpy as np
+import numpy.typing
 import matplotlib.pyplot as plt
 import astropy.units as units
 import types
@@ -392,7 +393,7 @@ class NI_Backend(object):
                     .to(units.m).value
         r_0 = (1/2*self.nifits.oi_wavelength.lambs/D)# *units.rad.to(units.mas)
         offset = md.array(self.nifits.ni_fov.data_table["offsets"])
-        def xy2phasor(x,y):
+        def xy2phasor(x,y, md=md):
             """
             x and y in rad.
 
