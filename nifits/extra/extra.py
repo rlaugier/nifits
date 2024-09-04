@@ -11,6 +11,7 @@ This includes:
 
 * statistical whitening of observables (Ceau et al. 2019, Laugier et al. 2023)
 * Correlation maps (coming soon)
+* Monte-Carlo simulation of instrumental noise (coming soon)
 * Various plotting macros (coming soon)
 
 At present, this is done through a new class Post that inherits from Backend

@@ -8,7 +8,7 @@ This procedure was mostly tested on ubuntu. If problems accur attempting to inst
 
 Although initially developped for python 3.8 and numpy 1.24, the setup installation routine was not working reliably.
 
-After some patches (version 0.0.3+), we now recommend python 3.12 and numpy 2.0+ for a smooth experience. Most dependencies should install automatically. 
+After some patches (version 0.0.3+), we now recommend python 3.10+ and numpy 1.26 for a smooth experience. Most dependencies should install automatically. We will migrate to numpy 2.0+ when the main conda repos will point towards these version, and when astropy dependencies will be fixed.
 
 The main dependencies are:
 

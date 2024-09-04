@@ -17,6 +17,6 @@ setup(name="nifits",
     packages=["nifits", "nifits.io", "nifits.backend", "nifits.extra", "nitest"],
     install_requires=[
             'numpy', 'scipy', 'matplotlib', 'astropy',
-            'sympy'
+            'sympy', 'einops'
     ],
     zip_safe=False)
