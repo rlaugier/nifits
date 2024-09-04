@@ -102,7 +102,7 @@ R. Laugier, J. Kammerer, M.-A. Martinod, F. Dannert, P. Huber
 
 ## Acknowledgement
 
-NOIFITS is a development carried out in the context of the [SCIFY project](http://denis-defrere.com/scify.php). [SCIFY](http://denis-defrere.com/scify.php) has received funding from the **European Research Council (ERC)** under the European Union's Horizon 2020 research and innovation program (*grant agreement No 866070*).  Part of this work has been carried out within the framework of the NCCR PlanetS supported by the Swiss National Science Foundation under grants 51NF40_18290 and 51NF40_205606.
+NIFITS is a development carried out in the context of the [SCIFY project](http://denis-defrere.com/scify.php). [SCIFY](http://denis-defrere.com/scify.php) has received funding from the **European Research Council (ERC)** under the European Union's Horizon 2020 research and innovation program (*grant agreement No 866070*).  Part of this work has been carried out within the framework of the NCCR PlanetS supported by the Swiss National Science Foundation under grants 51NF40_18290 and 51NF40_205606.
 
 
 Although this project has initially contained a branch of the OIFITS package from Paul Boley, the project has since evolved in entirely different implementation, and essentially all this original source code has disappeared.
