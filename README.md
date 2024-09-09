@@ -95,6 +95,14 @@ Additional data still under discussion:
   - Expansion of the current system should allow the standard to handle polarized light.
 * Handling of reference star calibration
 
+### Update notes:
+
+* Standard 0.2 (package version >= 0.0.4):
+  - The units of NI_IOUT, NI_KIOUT and NI_KCOV must be provided whith the header keyword `IUNIT`. The format
+    should be compatible with exporting to(and from ) string with astropy.units (i.e. `astropy.units.Unit("")` 
+    and `astropy.units.Unit.to_string()`).
+  - `Extra` now offers observable whitening, energy detector test statistic, p-value (aka pfa) and sensitivity limit in the blackbody hypothesis (see Ceau et al. 2019, Laugier et al. 2023).
+
 ## The NIFITS team
 
 R. Laugier, J. Kammerer, M.-A. Martinod, F. Dannert, P. Huber

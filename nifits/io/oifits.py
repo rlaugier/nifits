@@ -33,6 +33,10 @@ from dataclasses import dataclass, field
 import numpy.typing
 ArrayLike = np.typing.ArrayLike
 
+
+__version__ = "0.0.4"
+__standard_version__ = "0.2"
+
 _mjdzero = datetime.datetime(1858, 11, 17)
 
 matchtargetbyname = False
@@ -191,9 +195,18 @@ class NI_EXTENSION(object):
 
     * ``from_hdu``: Creates the object from an ``astropy.io.fits.TableHDU`` object
     * ``to_hdu``  : Returns the ``TableHDU`` from itself.
+
+    Args:
+        data_table: [ArrayLike] The data to stored 
+        header: [fits.Header] A fits header (optional)
+        unit: [astropy.units.Unit] Units of the data stored
+            (mandatory of NI_IOUT, NI_KIOUT and NI_KCOV)
+
     """
     data_table: Table = field(default_factory=Table)
     header: fits.Header = field(default_factory=fits.Header)
+    unit: u.Unit = None
+
     # TODO: Potentially, this should be a None by default, while still being a 
     # fits.Header type hint... We can if we have a None, we can catch it with 
     # a __post_init__ method. TODO this will help cleanup the signature in the doc.
@@ -208,7 +221,10 @@ class NI_EXTENSION(object):
         """
         data_table = Table(hdu.data)
         header = hdu.header
-        return cls(data_table=data_table, header=header)
+        if "IUNIT" in header.keys():
+            return cls(data_table=data_table, header=header, unit=u.Unit(header["IUNIT"]))
+        else:
+            return cls(data_table=data_table, header=header)
 
     def to_hdu(self):
         """
@@ -218,6 +234,9 @@ class NI_EXTENSION(object):
         
             This also updates the header if dimension changes
         """
+        if hasattr(self, "unit"):
+            if self.unit is not None:
+                self.header["IUNIT"] = (self.unit.to_string(), "Unit for the content")
         # TODO this looks like a bug in astropy.fits: the header should update on its own.
         myhdu = fits.hdu.BinTableHDU(name=self.name, data=self.data_table, header=self.header)
         # myhdu = fits.hdu.BinTableHDU(name=self.name, data=self.data_table)
@@ -235,9 +254,17 @@ class NI_EXTENSION(object):
 class NI_EXTENSION_ARRAY(NI_EXTENSION):
     """
     Generic class for NIFITS array extensions
+
+    Args:
+        data_array: [ArrayLike] The data to stored 
+        header: [fits.Header] A fits header (optional)
+        unit: [astropy.units.Unit] Units of the data stored
+            (mandatory of NI_IOUT, NI_KIOUT and NI_KCOV)
+
     """
     data_array: ArrayLike = field(default_factory=np.array)
     header: fits.Header = field(default_factory=fits.Header)
+    unit: u.Unit = None
 
     @classmethod
     def from_hdu(cls, hdu: type(fits.hdu.ImageHDU)):
@@ -246,7 +273,10 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
         """
         data_array = hdu.data
         header = hdu.header
-        return cls(data_array=data_array, header=header)
+        if "IUNIT" in header.keys():
+            return cls(data_array=data_array, header=header, unit=u.Unit(header["IUNIT"]))
+        else:
+            return cls(data_array=data_array, header=header)
     
     def to_hdu(self,):
         """
@@ -256,6 +286,9 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
         
             This also updates the header if dimension changes
         """
+        if hasattr(self, "unit"):
+            if self.unit is not None:
+                self.header["IUNIT"] = (self.unit.to_string(), "Unit for the content")
         myhdu = fits.hdu.ImageHDU(name=self.name,data=self.data_array, header=self.header)
         print("Updating header:\n", fits.HeaderDiff(myhdu.header, self.header))
         self.header = myhdu.header
@@ -358,10 +391,10 @@ class OI_WAVELENGTH(NI_EXTENSION):
         return self.data_table["EFF_BAND"].data
     @property
     def nus(self):
-        return cst_c/self.lambs
+        return (cst_c/(self.lambs*u.m)).value
     @property
     def dnus(self):
-        return cst_c/self.dlambs
+        return (cst_c/(self.dlambs*u.m)).value
         
 
 from dataclasses import field
@@ -471,20 +504,28 @@ class NI_CATM(NI_EXTENSION_CPX_ARRAY):
 class NI_IOUT(NI_EXTENSION):
     __doc__ = """
     ``NI_IOUT`` : a recording of the output values, given in intensity,
-    flux, counts or arbitrary units.
+    flux, counts or arbitrary units. Providing unit is mandatory since 0.2.
+        
     """ + NI_EXTENSION.__doc__
+    # TODO: resume here proper IO for units
     name = "NI_IOUT"
     @property
     def iout(self):
         return self.data_table["value"].data
+    def set_unit(self, new_unit, comment=None):
+        if comment is None:
+            comment = "The unit of the raw output flux."
+        self.header["IUNIT"] = (new_unit.to_string(), comment)
 
 
 class NI_KIOUT(NI_EXTENSION):
     __doc__ = """
     ``NI_KIOUT`` : a recording of the processed output values using the
     the post-processing matrix given by ``NI_KMAT``. Typically differential
-    null or kernel-null.
-    """ + NI_EXTENSION.__doc__
+    null or kernel-null. Providing unit is mandatory since 0.2. The unit should
+    match NI_IOUT.
+    """ + NI_EXTENSION_ARRAY.__doc__
+    unit: u.Unit = u.photon/u.s
     name = "NI_KIOUT"
     @property
     def kiout(self):
@@ -492,16 +533,27 @@ class NI_KIOUT(NI_EXTENSION):
     @property
     def shape(self):
         return self.data_table["value"].data.shape
+    def set_unit(self, new_unit, comment=None):
+        if comment is None:
+            comment = "The unit of the processed flux."
+        self.header["IUNIT"] = (new_unit.to_string(), comment)
 
 
 class NI_KCOV(NI_EXTENSION_ARRAY):
     __doc__ = """
     The covariance matrix for the processed data contained in KIOUT.
+     Providing unit is mandatory since 0.2. The unit should be
+    the unit of NI_KIOUT ^2.
     """ + NI_EXTENSION_ARRAY.__doc__
+    unit: u.Unit = (u.photon/u.s)**2
     name = "NI_KCOV"
     @property
     def kcov(self):
         return self.data_array
+    def set_unit(self, new_unit, comment=None):
+        if comment is None:
+            comment = "The unit of the covariance matrix."
+        self.header["IUNIT"] = (new_unit.to_string(), comment)
 
 
 @dataclass
@@ -635,10 +687,6 @@ def create_basic_fov_data(D, offset, lamb, n):
                     data=[indices, all_offsets])
     return mytable, xy2phasor
 
-class NI_KCOV(NI_EXTENSION_ARRAY):
-    __doc__ = """
-    Storing the covariance of the data.
-    """ + NI_EXTENSION_ARRAY.__doc__
 
 class NI_FOV(NI_EXTENSION):
     __doc__ = r"""
@@ -826,6 +874,9 @@ class nifits(object):
         """
         # TODO: Possibly, the static_hash should be a dictionary with
         # a hash for each extension
+        self.header["VERSION"] = (__standard_version__,
+                            f"Writen with rlaugier/nifits v{__version__}")
+        
         hdulist = fits.HDUList()
         hdu = fits.PrimaryHDU()
         if static_only:
@@ -855,7 +906,32 @@ class nifits(object):
         else:
             return hdulist
 
+    def check_unit_coherence(self):
+        """
+            Check the coherence of the units of and prints the result
+        NI_IOUT, NI_KCOV, and NI_KIOUT if they exist.
 
+        Otherwise, does nothing.
+        """
+        if hasattr(self, "ni_iout"):
+            print("NI_IOUT", self.ni_iout.unit)
+        else:
+            print("No NI_IOUT")
+        if hasattr(self, "ni_kiout"):
+            print("NI_KIOUT", self.ni_kiout.unit)
+        else:
+            print("No NI_KIOUT")
+        if hasattr(self, "ni_kcov"):
+            print("NI_KCOV", self.ni_kcov.unit)
+        else:
+            print("No NI_KCOV")
+            
+        if hasattr(self, "ni_iout") and hasattr(self, "ni_kiout"):
+            print(self.ni_iout.unit.is_equivalent(self.ni_kiout.unit))
+        if hasattr(self, "ni_kcov") and hasattr(self, "ni_kiout"):
+            print(np.sqrt(self.ni_kcov.unit).is_equivalent(self.ni_kiout.unit))
+        if hasattr(self, "ni_kcov") and hasattr(self, "ni_iout"):
+            print(np.sqrt(self.ni_kcov.unit).is_equivalent(self.ni_iout.unit))
 
 
 
