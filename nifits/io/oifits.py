@@ -565,7 +565,7 @@ class NI_KMAT(NI_EXTENSION_ARRAY):
     name = "NI_KMAT"
     @property
     def K(self):
-        return self.data_array
+        return self.data_array.astype(float)
 
 
 @dataclass
@@ -644,7 +644,7 @@ class NI_MOD(NI_EXTENSION):
     @property
     def appxy(self):
         """Shape n_frames x n_a x 2"""
-        return self.data_table["APPXY"].data
+        return self.data_table["APPXY"].data.astype(float)
 
     @property
     def dateobs(self):

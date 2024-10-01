@@ -1,5 +1,9 @@
 # A standard to handle nulling interferometry data
 
+## Breaking news:
+
+Standards live and die by their community. In order to get in touch with our community, we have an *ongoing poll*. If you are interested in NIFITS, help us to build a strong, welcoming and prolific community by answering [this poll](https://forms.gle/HVECwQCz8PE6Tvic9).
+
 ## The `nifits` package
 
 The `nifits` package has two roles:
@@ -52,6 +56,8 @@ The forward model of an observation can be computed by multiplying the resulting
 
 For the case of staged beam combiners (double Bracewells, kernel nullers...) that use differential output the "kernel" matrix can be provided in the `NI_KMAT` under the form of a matrix operating on output intensities. The vector resulting from this additional transformation can then be compared to the processed data stored into the `NI_KIOUT` extension.
 
+The following description details the extensions used for NIFITS. Until the offcial publication of the standard, the details of operation can be infered from the `examples/quick_start.ipynb` notebook which details both creation and usage of a simple file. Feel free to contact us through Issues or email for more details.
+
 ### Description of the main extensions
 
 *Table 1: Summary of the NIFITS extensions*
@@ -72,15 +78,15 @@ For the case of staged beam combiners (double Bracewells, kernel nullers...) tha
 
 |  Item        |  format                       |  unit            | comment |
 | ------------ | ----------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------- |
-|  `APP_INDEX` |  $n_a \times $$int            |  NA              | Indices of subaperture (starts at 0) |
+|  `APP_INDEX` |  $n_a \times$ int            |  NA              | Indices of subaperture (starts at 0) |
 |  `TARGET_ID` |  int                          |  d               | Index of target in `OI_TARGET` |
 |  `TIME`      |  float                        |  s               | Backwards compatibility |
 |  `MJD`       |  float                        |  day             |  |
 |  `INT_TIME`  |  float                        |  s               | Exposure time |
-|  `MOD_PHAS`  |  $n_{\lambda} \times n_a_\times $ complex |                  | Complex phasor of modulation for the collector |
-|  `APPXY`     |  $n_a \times 2 \times $ float |  m               | Projected location of subapertures in the plane orthogonal to the line of sight and oriented as $(\alpha, \delta)$ |
-|  `ARRCOL`    |  $n_a \times $ float          |  $\mathrm{m}^2$  | Collecting area of the subaperture |
-|  `FOV_INDEX` |  $n_a \times$ $ int           |  NA              | The entry of the `NI_FOV` to use for this subaperture. |
+|  `MOD_PHAS`  |  $n_{\lambda} \times n_a \times$ complex |                  | Complex phasor of modulation for the collector |
+|  `APPXY`     |  $n_a \times 2 \times$ float |  m               | Projected location of subapertures in the plane orthogonal to the line of sight and oriented as $(\alpha, \delta)$ |
+|  `ARRCOL`    |  $n_a \times$ float          |  $\mathrm{m}^2$  | Collecting area of the subaperture |
+|  `FOV_INDEX` |  $n_a \times$ int           |  NA              | The entry of the `NI_FOV` to use for this subaperture. |
 
 Important implementation hints:
 `NI_CATM` contains the static properties of the combiner that should rarely need to be updated.

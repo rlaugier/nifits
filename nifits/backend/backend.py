@@ -555,7 +555,7 @@ class NI_Backend(object):
         **Returns** : A vector of complex phasors
 
         """
-        xy_array = self.nifits.ni_mod.appxy
+        xy_array = md.array(self.nifits.ni_mod.appxy)
         lambs = md.array(self.nifits.oi_wavelength.lambs)
         k = 2*md.pi/lambs
         a = md.array((alphas, betas), dtype=md.float64)
