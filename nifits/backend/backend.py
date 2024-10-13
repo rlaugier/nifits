@@ -93,7 +93,7 @@ class PointCollection(object):
             self.orig_shape = self.shape
 
     @classmethod
-    def from_uniform_disk(cls, radius=None,
+    def from_uniform_disk(cls, radius: float = None,
                         n: int = 10,
                         phi_0: float = 0.,
                         offset: ArrayLike = np.array((0.,0.)),
@@ -103,12 +103,14 @@ class PointCollection(object):
             Create a point collection as a uniformly sampled disk.
 
         Args:
-            a_coords : The array of samples along the first axis
-                  (typically alpha)
-            b_coords : The array of samples along the second axis
-                  (typically beta, the second dimension)
+            radius :   [mas] The angular radius of the disk to model
+            n      :   The total number of points to create
+            phi_0  :   [rad] Arbitrary angle to initialiaze pattern
+            offset :   [mas] An offset of the disk location with respect
+                to the center of the field of view
+            md     :   The numerical module to use as backend
+            unit   :   The unit to use for interactions
 
-        **Handles:**
         """
         alpha = md.pi * (3 - md.sqrt(5))    # the "golden angle"
         points = []
@@ -121,7 +123,7 @@ class PointCollection(object):
         return myobj
 
     @classmethod
-    def from_grid(cls, a_coords: ArrayLike, b_coords: "ArrayLike",
+    def from_grid(cls, a_coords: ArrayLike, b_coords: ArrayLike,
                         md: ModuleType = np,
                         unit: units.Unit = units.mas):
         """
