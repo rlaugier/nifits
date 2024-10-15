@@ -891,11 +891,15 @@ class nifits(object):
             if hasattr(self, anext.lower()):
                 print(anext.lower(), flush=True)
                 theobj = getattr(self, anext.lower())
-                thehdu = theobj.to_hdu()
-                hdulist.append(thehdu)
-                hdu.header[anext] = "Included"
-                # TODO Possibly we need to do this differently:
-                # TODO Maybe pass the header to the `to_hdu` method?
+                if theobj is not None:
+                    thehdu = theobj.to_hdu()
+                    hdulist.append(thehdu)
+                    hdu.header[anext] = "Included"
+                    # TODO Possibly we need to do this differently:
+                    # TODO Maybe pass the header to the `to_hdu` method?
+                else:
+                    hdu.header[anext] = "Not included (None)"
+                    print(f"Warning: {anext} was present but empty")
             else:
                 hdu.header[anext] = "Not included"
                 print(f"Warning: Could not find the {anext} object")
