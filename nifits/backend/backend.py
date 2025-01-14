@@ -221,6 +221,32 @@ class PointCollection(object):
             return (self.aa.reshape(self.orig_shape), self.bb.reshape(self.orig_shape))
         else:
             raise AttributeError("Did not have an original shape")
+    def plot_frame(self, z=None, frame_index=0, wl_index=0,
+                        out_index=0, mycmap=None, marksize_increase=1.0,
+                        colorbar=True, xlabel=True, title=True):
+        import matplotlib.pyplot as plt
+        marksize = marksize_increase * 50000/self.shape[0]
+        if len(self.orig_shape) == 1:
+            plt.scatter(*self.coords, c=z[frame_index,wl_index,out_index,:],
+                    cmap=mycmap, s=marksize)
+            plt.gca().set_aspect("equal")
+        else:
+            plt.imshow(z[frame_index,wl_index,out_index,:].reshape((self.orig_shape)),
+                cmap=mycmap, extent=self.extent)
+            plt.gca().set_aspect("equal")
+            
+        if colorbar:
+            plt.colorbar()
+        if xlabel is True:
+            plt.xlabel("Relative position [mas]")
+        elif xlabel is not False:
+            plt.xlabel(xlabel)
+        if title is True:
+            plt.title(f"Output {out_index} for frame {frame_index}")
+        elif title is not False:
+            plt.title(title)
+
+            
 
     def __add__(self, other):
         """

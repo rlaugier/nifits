@@ -108,6 +108,7 @@ Additional data still under discussion:
     should be compatible with exporting to(and from ) string with astropy.units (i.e. `astropy.units.Unit("")` 
     and `astropy.units.Unit.to_string()`).
   - `Extra` now offers observable whitening, energy detector test statistic, p-value (aka pfa) and sensitivity limit in the blackbody hypothesis (see Ceau et al. 2019, Laugier et al. 2023).
+* The package now also include a nifits file viewer which requires streamlit and [kernuller](github.com/rlaugier/kernuller). This is a prototype/demonstrator for a future standalone tool.
 
 ## The NIFITS team
 
