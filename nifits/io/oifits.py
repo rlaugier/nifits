@@ -34,14 +34,53 @@ import numpy.typing
 ArrayLike = np.typing.ArrayLike
 
 
-__version__ = "0.0.4"
-__standard_version__ = "0.2"
+__version__ = "0.0.5"
+__standard_version__ = "0.3"
 
 _mjdzero = datetime.datetime(1858, 11, 17)
 
 matchtargetbyname = False
 matchstationbyname = False
 refdate = datetime.datetime(2000, 1, 1)
+
+
+import warnings
+def check_item(func):
+    """
+    A decorator for the `fits.Header.__getitem__`.
+    This is here to save from compatibility issues with files of
+    standard version <= 0.2 while warning that that this version will 
+    """
+    def inner(*args, **kwargs):
+        good_kw = True
+        try :
+            item = func(*args, **kwargs)
+            good_kw = True
+        except KeyError: 
+            good_kw = False
+        if good_kw:
+            return item
+        bad_kw = True
+        try : 
+            akw = args[1]
+            mykw = akw.split(" ")[-1]
+            baditem = func(args[0], mykw, **kwargs)
+            bad_kw = True
+        except KeyError: 
+            bad_kw = False
+        
+        if bad_kw and not good_kw:
+            warnings.warn(f"Keyword deprecation. Expected `{args[1]}` (`HIERARCH` keyword)\n Found `{mykw}`\n This file was generated for NIFITS standard version <= 0.2. It will stop working for library versions >= 0.1.0 .")
+            item = baditem
+            return item
+        elif not bad_kw and not good_kw:
+            raise KeyError(f"Neither {args[1]} nor {mykw} found.")
+            return None
+            
+            
+        return item
+    return inner
+fits.Header.__getitem__ = check_item(fits.Header.__getitem__)
 
 def _plurals(count):
     if count != 1: return 's'
@@ -133,8 +172,8 @@ class OI_STATION(object):
 class NI_CATM(object):
     """Contains the complex amplitude transfer matrix CATM of the instrument.
     The CATM is a complex matrix representing the transformation from the each
-    of the complex amplitude of electric field from the inputs to the outputs 
-    of the instrument. The dimensions are (n_ch, n_out, n_in) where n_ch 
+    of the complex amplitude of electric field from the inputs to the outputs
+    of the instrument. The dimensions are (n_ch, n_out, n_in) where n_ch
     represents the spectral channels.
     
     It is expected that
@@ -172,17 +211,17 @@ def nulfunc(self, *args, **kwargs):
 
 NI_OUT_DEFAULT_HEADER = fits.Header(cards=[("UNITS", "ADU", "The units for output values")])
 
-NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("MOD_PHAS_UNITS", "rad", "The units for modulation phasors"),
-                                        ("ARRCOL_UNITS", "m^2", "The units for collecting area")
+NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS AMOD_PHAS_UNITS", "rad", "The units for modulation phasors"),
+                                        ("HIERARCH NIFITS ARRCOL_UNITS", "m^2", "The units for collecting area")
                                             ])
 
 # Possible to use "chromatic_gaussian_radial", "diameter_gaussian_radial".
 # Simplest default is a gaussian with r0 = lambda/D
-NI_FOV_DEFAULT_HEADER = fits.Header(cards=[("FOV_MODE","diameter_gaussian_radial","Type of FOV definition"),
-                                        ("FOV_offset"),
-                                        ("FOV_TELDIAM", 8.0, "diameter of a collecting aperture for FOV"),
-                                        ("FOV_TELDIAM_UNIT", "m", ""),
-                                        ("WL_SHIFT_MODE", "")])
+NI_FOV_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS FOV_MODE","diameter_gaussian_radial","Type of FOV definition"),
+                                        ("HIERARCH NIFITS FOV_offset"),
+                                        ("HIERARCH NIFITS FOV_TELDIAM", 8.0, "diameter of a collecting aperture for FOV"),
+                                        ("HIERARCH NIFITS FOV_TELDIAM_UNIT", "m", ""),
+                                        ("HIERARCH NIFITS WL_SHIFT_MODE", "")])
 
     
 
@@ -221,8 +260,8 @@ class NI_EXTENSION(object):
         """
         data_table = Table(hdu.data)
         header = hdu.header
-        if "IUNIT" in header.keys():
-            return cls(data_table=data_table, header=header, unit=u.Unit(header["IUNIT"]))
+        if "HIERARCH NIFITS IUNIT" in header.keys():
+            return cls(data_table=data_table, header=header, unit=u.Unit(header["NIFITS IUNIT"]))
         else:
             return cls(data_table=data_table, header=header)
 
@@ -236,7 +275,7 @@ class NI_EXTENSION(object):
         """
         if hasattr(self, "unit"):
             if self.unit is not None:
-                self.header["IUNIT"] = (self.unit.to_string(), "Unit for the content")
+                self.header["NIFITS IUNIT"] = (self.unit.to_string(), "Unit for the content")
         # TODO this looks like a bug in astropy.fits: the header should update on its own.
         myhdu = fits.hdu.BinTableHDU(name=self.name, data=self.data_table, header=self.header)
         # myhdu = fits.hdu.BinTableHDU(name=self.name, data=self.data_table)
@@ -274,7 +313,7 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
         data_array = hdu.data
         header = hdu.header
         if "IUNIT" in header.keys():
-            return cls(data_array=data_array, header=header, unit=u.Unit(header["IUNIT"]))
+            return cls(data_array=data_array, header=header, unit=u.Unit(header["NIFITS IUNIT"]))
         else:
             return cls(data_array=data_array, header=header)
     
@@ -288,7 +327,7 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
         """
         if hasattr(self, "unit"):
             if self.unit is not None:
-                self.header["IUNIT"] = (self.unit.to_string(), "Unit for the content")
+                self.header["NIFITS IUNIT"] = (self.unit.to_string(), "Unit for the content")
         myhdu = fits.hdu.ImageHDU(name=self.name,data=self.data_array, header=self.header)
         print("Updating header:\n", fits.HeaderDiff(myhdu.header, self.header))
         self.header = myhdu.header
@@ -515,7 +554,7 @@ class NI_IOUT(NI_EXTENSION):
     def set_unit(self, new_unit, comment=None):
         if comment is None:
             comment = "The unit of the raw output flux."
-        self.header["IUNIT"] = (new_unit.to_string(), comment)
+        self.header["NIFITS IUNIT"] = (new_unit.to_string(), comment)
 
 
 class NI_KIOUT(NI_EXTENSION):
@@ -536,7 +575,7 @@ class NI_KIOUT(NI_EXTENSION):
     def set_unit(self, new_unit, comment=None):
         if comment is None:
             comment = "The unit of the processed flux."
-        self.header["IUNIT"] = (new_unit.to_string(), comment)
+        self.header["NIFITS IUNIT"] = (new_unit.to_string(), comment)
 
 
 class NI_KCOV(NI_EXTENSION_ARRAY):
@@ -553,7 +592,7 @@ class NI_KCOV(NI_EXTENSION_ARRAY):
     def set_unit(self, new_unit, comment=None):
         if comment is None:
             comment = "The unit of the covariance matrix."
-        self.header["IUNIT"] = (new_unit.to_string(), comment)
+        self.header["NIFITS IUNIT"] = (new_unit.to_string(), comment)
 
 
 @dataclass
@@ -694,7 +733,7 @@ class NI_FOV(NI_EXTENSION):
     function as a function of wavelength.
 
     This can be interpreted in different ways depending on the value of the
-    header keyword ``FOV_MODE``.
+    header keyword ``NIFITS FOV_MODE``.
 
     * ``diameter_gaussian_radial``   : A simple gaussian radial falloff function
       based on a size of :math:`\lambda/D` and a chromatic offset defined for each
@@ -706,16 +745,16 @@ class NI_FOV(NI_EXTENSION):
     @classmethod
     def simple_from_header(cls, header=None, lamb=None, n=0):
         r"""
-        Constructor for a simple ``NI_FOV`` object with chromatic gaussian profile and 
+        Constructor for a simple ``NIFITS NI_FOV`` object with chromatic gaussian profile and 
         no offset.
 
         Args:
             header : (astropy.io.fits.Header) Header containing the required information
-                      such as ``FOV_TELDIAM`` and ``FOV_TELDIAM_UNIT`` which are used to
+                      such as ``NIFITS FOV_TELDIAM`` and ``NIFITS FOV_TELDIAM_UNIT`` which are used to
                       create the gaussian profiles of radius :math:`\lambda/D`
         """
         offset = np.zeros((n,2))
-        telescope_diameter_q = header["FOV_TELDIAM"]*u.Unit(header["FOV_TELDIAM_UNIT"])
+        telescope_diameter_q = header["NIFITS FOV_TELDIAM"]*u.Unit(header["NIFITS FOV_TELDIAM_UNIT"])
         telescope_diameter_m = telescope_diameter_q.to(u.m).value
         mytable, xh2phasor = create_basic_fov_data(telescope_diameter_m, offset=offset,
                                     lamb=lamb, n=n)
@@ -735,8 +774,8 @@ class NI_FOV(NI_EXTENSION):
             lamb : The array of wavelength bins [m]
             n    : The index of the time series to compute for
         """
-        assert self.header["FOV_MODE"] == "diameter_gaussian_radial"
-        D = self.header[""]
+        assert self.header["NIFITS FOV_MODE"] == "diameter_gaussian_radial"
+        D = self.header["NIFITS FOV_TELDIAM"]
         r_0 = (lamb/D)*u.rad.to(u.mas)
         offset = self.data_table["offsets"][n]
         def xy2phasor(alpha, beta):
@@ -812,6 +851,8 @@ STATIC_EXTENSIONS = [True,
 def getclass(classname):
     return getattr(sys.modules[__name__], classname)
 
+H_PREFIX = "HIERARCH NIFITS "
+
 @dataclass
 class nifits(object):
     """Class representation of the nifits object."""
@@ -874,7 +915,7 @@ class nifits(object):
         """
         # TODO: Possibly, the static_hash should be a dictionary with
         # a hash for each extension
-        self.header["VERSION"] = (__standard_version__,
+        self.header["HIERARCH NIFITS VERSION"] = (__standard_version__,
                             f"Writen with rlaugier/nifits v{__version__}")
         
         hdulist = fits.HDUList()
@@ -894,14 +935,14 @@ class nifits(object):
                 if theobj is not None:
                     thehdu = theobj.to_hdu()
                     hdulist.append(thehdu)
-                    hdu.header[anext] = "Included"
+                    hdu.header[H_PREFIX + anext] = "Included"
                     # TODO Possibly we need to do this differently:
                     # TODO Maybe pass the header to the `to_hdu` method?
                 else:
-                    hdu.header[anext] = "Not included (None)"
+                    hdu.header[H_PREFIX + anext] = "Not included (None)"
                     print(f"Warning: {anext} was present but empty")
             else:
-                hdu.header[anext] = "Not included"
+                hdu.header[H_PREFIX + anext] = "Not included"
                 print(f"Warning: Could not find the {anext} object")
         print(hdu.header)
         if writefile:

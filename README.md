@@ -103,8 +103,12 @@ Additional data still under discussion:
 
 ### Update notes:
 
+* Standard 0.3 (package version >= 0.0.5):
+  - The NIFITS-relate header keywords are now explicitly `HIERARCH` keywords. They are stored under `HIERARCH NIFITS`
+  - Files from previous version which have the simple keywords stored without this distinction will work but throw a deprecation warning.
+  - This was done by decorating `astropy.io.fits.Header.__getitem__`, catching an exception and looking for the bare keyword.
 * Standard 0.2 (package version >= 0.0.4):
-  - The units of NI_IOUT, NI_KIOUT and NI_KCOV must be provided whith the header keyword `IUNIT`. The format
+  - The units of NI_IOUT, NI_KIOUT and NI_KCOV must be provided whith the header keyword `NIFITS IUNIT`. The format
     should be compatible with exporting to(and from ) string with astropy.units (i.e. `astropy.units.Unit("")` 
     and `astropy.units.Unit.to_string()`).
   - `Extra` now offers observable whitening, energy detector test statistic, p-value (aka pfa) and sensitivity limit in the blackbody hypothesis (see Ceau et al. 2019, Laugier et al. 2023).
@@ -112,7 +116,7 @@ Additional data still under discussion:
 
 ## The NIFITS team
 
-R. Laugier, J. Kammerer, M.-A. Martinod, F. Dannert, P. Huber
+R. Laugier, J. Kammerer, M.-A. Martinod, F. Dannert, P. Huber, J. Hansen
 
 
 ## Acknowledgement

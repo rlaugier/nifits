@@ -415,9 +415,9 @@ class NI_Backend(object):
         Sets up ``self.ni_fov.xy2phasor``
 
         """
-        assert self.nifits.ni_fov.header["FOV_MODE"] == "diameter_gaussian_radial"
-        D = (self.nifits.ni_fov.header["FOV_TELDIAM"] \
-                *units.Unit(self.nifits.ni_fov.header["FOV_TELDIAM_UNIT"]))\
+        assert self.nifits.ni_fov.header["NIFITS FOV_MODE"] == "diameter_gaussian_radial"
+        D = (self.nifits.ni_fov.header["NIFITS FOV_TELDIAM"] \
+                *units.Unit(self.nifits.ni_fov.header["NIFITS FOV_TELDIAM_UNIT"]))\
                     .to(units.m).value
         r_0 = (1/2*self.nifits.oi_wavelength.lambs/D)# *units.rad.to(units.mas)
         offset = md.array(self.nifits.ni_fov.data_table["offsets"])

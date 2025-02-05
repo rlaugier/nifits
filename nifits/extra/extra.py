@@ -74,7 +74,7 @@ class Post(be.NI_Backend):
         self.md = md
         # Assertion: assert
         assert hasattr(self.nifits, "ni_kcov")
-        if self.nifits.ni_kcov.header["SHAPE"] != "frame (wavelength output)":
+        if self.nifits.ni_kcov.header["NIFITS SHAPE"] != "frame (wavelength output)":
             raise NotImplementedError("Covariance shape expected: frame (wavelength output)")
 
         Ws = []
