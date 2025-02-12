@@ -114,7 +114,7 @@ class Post(be.NI_Backend):
                 a.k.a kernel-null)
 
         Returns:
-            wout_full: the whitened signal ($\mathbf{W}\cdot \mathbf{s}$)
+            wout_full: the whitened signal ($\\mathbf{W}\\cdot \\mathbf{s}$)
                 in the new basis.
 
         """

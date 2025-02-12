@@ -201,6 +201,20 @@ if file_in is not None:
         plt.tight_layout()
         st.pyplot(mod_fig)
 
+        ############################################################
+        ## Plot of the actual recorded flux ########################
+        ############################################################
+
+        # mycmap = "viridis"
+        myoutputs = None
+        myrowcols = None
+        myresx = 1000
+        myresy = 1000
+        fig_recorded, fig_axarr = abe.plot_recorded(
+            cmap=mycmap, outputs=myoutputs, nrows_ncols=myrowcols,
+            res_x=myresx, res_y=myresy
+        )
+        st.pyplot(fig_recorded)
         pass
 
     with combination:

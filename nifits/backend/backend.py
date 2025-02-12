@@ -26,7 +26,6 @@ from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
 from nifits.io.oifits import nifits as NIFITSClass
 import numpy as np
 import numpy.typing
-import matplotlib.pyplot as plt
 import astropy.units as units
 import types
 ModuleType = types.ModuleType
@@ -635,5 +634,71 @@ class NI_Backend(object):
             return KIs
         else:
             return Is
+
+    def plot_recorded(self, cmap="viridis", outputs=None, nrows_ncols=None,
+                    res_x=1000, res_y=500, interp="nearest"):
+        import matplotlib.pyplot as plt
+        from scipy.interpolate import griddata
+        if outputs is None:
+            n_subplots = self.nifits.ni_iout.data_table["value"].shape[2]
+            output_names = [f"Output {i}" for i in range(n_subplots)]
+        else:
+            n_subplots = len(outputs)
+            output_names = [f"Output {i}" for i in outputs]
+        n_frames = self.nifits.ni_iout.data_table["value"].shape[0]
+        n_wls = self.nifits.ni_iout.data_table["value"].shape[1]
+        if nrows_ncols is None:
+            test_ncols  = n_subplots//2
+            if test_ncols > 4:
+                ncols = 4
+            nrows, ncols = col_row_numbers(n_subplots)
+        else :
+            nrows, ncols = nrows_ncols
+        max_time = np.max(self.nifits.ni_mod.data_table["MJD"])
+        min_time = np.min(self.nifits.ni_mod.data_table["MJD"])
+        max_wl = np.max(self.nifits.oi_wavelength.lambs)
+        min_wl = np.min(self.nifits.oi_wavelength.lambs)
+        gridx, gridy = np.meshgrid(np.linspace(min_time, max_time, res_x),
+                                        np.linspace(min_wl, max_wl, res_y))
+        gridextent = [min_time, max_time, min_wl, max_wl]
+
+        fig, axarr = plt.subplots(nrows=nrows, ncols=ncols, sharex=True, sharey=True)
+        points = np.array(np.meshgrid(self.nifits.ni_mod.data_table["MJD"],
+                                        self.nifits.oi_wavelength.lambs))
+        points = points.reshape((2,-1)).T
+        # points = points.transpose(1,2,0)
+        # print("points", points.shape)
+        # print("data", np.array(self.nifits.ni_iout.data_table["value"]).shape)
+
+        for i in range(n_subplots):
+            thevals = self.nifits.ni_iout.data_table["value"][:,:,i]
+            thevals = thevals.T.flatten()
+            # print("thevals", thevals.shape)
+            # print("points", points.shape)
+            mygrid = griddata(points, thevals, (gridx, gridy), method=interp)
+            # print(mygrid.shape)
+            # print(np.min(mygrid), np.max(mygrid))
+            plt.sca(axarr.flat[i])
+            # plt.imshow(self.nifits.ni_iout.data_table["value"][:,:,i])
+            plt.imshow(mygrid, cmap=cmap, extent=gridextent)
+            plt.colorbar()
+            plt.gca().set_aspect("auto")
+            plt.title(output_names[i])
+        plt.tight_layout()
+        plt.xlabel("MJD")
+        plt.ylabel("Wavelength [m]")
+        return fig, axarr
+        
+        
+            
+def col_row_numbers(n, col_ceiling=4):
+    ncols = int(np.sqrt(n))
+    if ncols >col_ceiling:
+        ncols=col_ceiling
+    nrows = int(np.ceil(n/ncols))
+    return nrows, ncols        
+
+        
+        
     
 
