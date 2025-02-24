@@ -34,8 +34,8 @@ import numpy.typing
 ArrayLike = np.typing.ArrayLike
 
 
-__version__ = "0.0.5"
-__standard_version__ = "0.3"
+__version__ = "0.0.6"
+__standard_version__ = "0.4"
 
 _mjdzero = datetime.datetime(1858, 11, 17)
 
@@ -209,7 +209,7 @@ def nulfunc(self, *args, **kwargs):
     raise TypeError
 
 
-NI_OUT_DEFAULT_HEADER = fits.Header(cards=[("UNITS", "ADU", "The units for output values")])
+NI_OITAG_DEFAULT_HEADER = fits.Header(cards=[("HIERRARCH NIFITS IOSWAPS", False, "The units for output values")])
 
 NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS AMOD_PHAS_UNITS", "rad", "The units for modulation phasors"),
                                         ("HIERARCH NIFITS ARRCOL_UNITS", "m^2", "The units for collecting area")
@@ -436,6 +436,43 @@ class OI_WAVELENGTH(NI_EXTENSION):
         return (cst_c/(self.dlambs*u.m)).value
         
 
+class NI_OSWAVELENGTH(NI_EXTENSION):
+    __doc__ = """
+    An object storing the wavelength before a downsampling. This must have the
+    wavelength for each of the slice of the CATM matrix, each of the ``NI_MOD``
+    phasors and each column of the ``NI_DSAMP`` matrix.
+
+    If ``NI_OOSWAVELENGTH`` is absent, assume that there is no over or down-
+    sampling and take the values directly from ``OI_WAVELENGTH``.
+
+    **Shorthands:**
+
+    * ``self.lambs`` : ``ArrayLike`` [m] returns an array containing the center
+      of each spectral channel.
+    * ``self.dlmabs`` : ``ArrayLike`` [m] an array containing the spectral bin
+      widths.
+    * ``self.nus`` : ``ArrayLike`` [Hz] an array containing central frequencies
+      of the
+      spectral channels.
+    * ``self.dnus`` : ``ArrayLike`` [Hz] an array containing the frequency bin
+      widths.
+
+    """ + NI_EXTENSION.__doc__
+    name = "OI_WAVELENGTH"
+
+    @property
+    def lambs(self):
+        return self.data_table["EFF_WAVE"].data
+    @property
+    def dlambs(self):
+        return self.data_table["EFF_BAND"].data
+    @property
+    def nus(self):
+        return (cst_c/(self.lambs*u.m)).value
+    @property
+    def dnus(self):
+        return (cst_c/(self.dlambs*u.m)).value
+
 from dataclasses import field
 from typing import List
 
@@ -505,28 +542,6 @@ class OI_TARGET(NI_EXTENSION):
                                     parallax, para_err, spectyp, category ])
 
 
-@dataclass
-class NI_OUT(NI_EXTENSION):
-    __doc__ = """Contains measured intensities of the outputs of the instrument. 
-    Dimensions are (n_ch, n_out).""" + NI_EXTENSION.__doc__
-    value_out: Table = field(default_factory=Table)
-    header: dict = field(default_factory=fits.header)
-    name = "NI_OUT"
-    
-    @property
-    def asarray(self, module=np):
-        return module.array(self.table_value["u"])
-
-    def check_against_catm(self, catm: NI_CATM):
-        n_wl = catm.Mcatm.shape[0]
-        # n_inputs = catm.Mcatm.shape[2] # Not needed
-        n_outputs = catm.Mcatm.shape[2]
-        for i, arow in enumerate(self.table_value):
-            assert arow["u"].shape[0] == n_wl,\
-                            f"Inconsistent wavelength number in table {i}"
-            assert arow["u"].shape[1] == n_outputs,\
-                            f"Inconsistent outputs number in table at row {i}"
-        assert self.value_output.shape[2] == n_outputs, "Inconsistent output number in array"
 
 
 @dataclass
@@ -605,6 +620,67 @@ class NI_KMAT(NI_EXTENSION_ARRAY):
     @property
     def K(self):
         return self.data_array.astype(float)
+
+@dataclass
+class NI_DSAMP(NI_EXTENSION_ARRAY):
+    __doc__ = """
+    The matrix that defines linear combinations of output wavelengths. It is
+    meant to be used to down-sample the wavelengths of the forward model. The
+    number of columns should match the number of channels described by
+    ``NI_OSWAVELENGTH`` and the number of rows should match the number of channels
+    described in OI_WAVELENGTH.
+
+    If ``NI_DSAMP`` or ``NI_OSWAVELENGTH`` are missing, then assume the identity matrix
+    and possibly skip the computation step.
+        
+    The linear combination is defined by a real-valued matrix. It is recommended
+    that the matrix be semi-unitary on the left, so that a flux conservation is
+    observed, and both input and outputs can be described in the same units.
+    """ + NI_EXTENSION_ARRAY.__doc__
+    name = "NI_DSAMP"
+    @property
+    def D(self):
+        return self.data_array.astype(float)
+        
+
+@dataclass
+class NI_IOTAGS(NI_EXTENSION):
+    r"""
+    Contains information on the inputs and outputs.
+    """
+    data_table: Table = field(default_factory=Table)
+    header: fits.Header = field(default_factory=fits.Header)
+    name = "NI_MOD"
+    @property
+    def outbright(self):
+        """
+        The flags of bright outputs
+        """
+        return self.data_table["BRIGHT"].data
+    @property
+    def outdark(self):
+        """
+        The flags of dark outputs
+        """
+        return self.data_table["DARK"].data
+    @property
+    def outbright(self):
+        """
+        The flags of photometric outputs
+        """
+        return self.data_table["PHOT"].data
+    @property
+    def outpola(self):
+        """
+        The polarization of outputs.
+        """
+        return self.data_table["OUTPOLA"].data
+    @property
+    def inpola(self):
+        """
+        The polarization of inputs.
+        """
+        return self.data_table["INPOLA"].data
 
 
 @dataclass
@@ -834,7 +910,10 @@ NIFITS_EXTENSIONS = np.array(["OI_ARRAY",
                     "NI_MOD",
                     "NI_IOUT",
                     "NI_KIOUT",
-                    "NI_KCOV"])
+                    "NI_KCOV",
+                    "NI_DSAMP",
+                    "NI_OSWAVELENGTH",
+                    "NI_IOTAGS"])
 
 NIFITS_KEYWORDS = []
 
@@ -846,6 +925,9 @@ STATIC_EXTENSIONS = [True,
                     False,
                     False,
                     False,
+                    False,
+                    True,
+                    True,
                     False]
 
 def getclass(classname):
@@ -866,6 +948,9 @@ class nifits(object):
     ni_iout: NI_IOUT = None
     ni_kiout: NI_KIOUT = None
     ni_kcov: NI_KCOV = None
+    ni_dsamp: NI_DSAMP = None
+    ni_oswavelength: NI_OSWAVELENGTH = None
+    ni_iotags: NI_IOTAGS = None
 
     
 

@@ -562,9 +562,10 @@ class NI_Backend(object):
         Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None], md=md)
         if kernels:
             KIs = self.get_KIs(Is, md=md)
-            return KIs
+            return self.downsample(KIs)
         else:
-            return Is
+            return self.downsample(Is)
+
 
     def moving_geometric_phasor(self, alphas, betas, include_mod=True,
                             md=np):
@@ -631,9 +632,32 @@ class NI_Backend(object):
         Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None], md=md)
         if kernels:
             KIs = self.get_KIs(Is, md=md)
-            return KIs
+            return self.downsample(KIs)
         else:
+            return self.downsample(Is)
+
+    def downsample(self, Is):
+        """
+        Downsample flux from the NI_OSWAVELENGTH bins to
+        OI_WAVELENGTH bins.
+        Expected shape is : (n_frames, n_wl, n_outputs, n_points), the method
+        simply applies the ``NI_DSAMP`` matrix along the second axis (1).
+
+        Args:
+            Is     : ArrayLike [flux] input the result computed with the
+                     oversampled wavelength channels.
+                     (n_frames, n_wlold, n_outputs, n_points)
+
+        Returns:
+            Ids    : ArrayLike [flux] (n_frames, n_wlnew, n_outputs, n_points)
+
+        Returns
+        """
+        if (self.nifits.ni_dsamp is None) or (self.nifits.ni_oswavelength is None):
             return Is
+        Ids = np.einsum("l w, t w o m -> t l o m", self.nifits.ni_dsamp.D, Is )
+        return Ids
+        
 
     def plot_recorded(self, cmap="viridis", outputs=None, nrows_ncols=None,
                     res_x=1000, res_y=500, interp="nearest"):
