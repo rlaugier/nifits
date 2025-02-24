@@ -223,6 +223,35 @@ NI_FOV_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS FOV_MODE","diameter
                                         ("HIERARCH NIFITS FOV_TELDIAM_UNIT", "m", ""),
                                         ("HIERARCH NIFITS WL_SHIFT_MODE", "")])
 
+"""
+Obtaining the goecentric location of observatories. (unchecked)
+```python
+from astroplan import Observer
+import astropy.coordinates as coords
+myobs = Observer.at_site("CHARA")
+print([acoord.value for acoord in myobs.location.to_geocentric()]) 
+```
+VLTI:     1946404.3410388362, -5467644.290798524, -2642728.2014442487
+CHARA:    -2484228.6029109913, -4660044.467216573, 3567867.961141405
+"""
+OI_ARRAY_DEFAULT_VLTI_HEADER = fits.Header(cards=[
+    ("OI_REVN", 1, "Revision number of the table definition (refers no OIFITS version, not NIFITS)."),
+    ("ARRNAME", "VLTI", "Array name, for cross-referencing"),
+    ("FRAME", "GEOCENTRIC", "Coordinate frame"),
+    ("ARRAYX", 1946404.3410388362, "Array center coordinates (m)"),
+    ("ARRAYY", -5467644.290798524,"Array center coordinates (m)"),
+    ("ARRAYZ", -2642728.2014442487, "Array center coordinates (m)"),
+])
+    
+OI_ARRAY_DEFAULT_CHARA_HEADER = fits.Header(cards=[
+    ("OI_REVN", 1, "Revision number of the table definition (refers no OIFITS version, not NIFITS)."),
+    ("ARRNAME", "CHARA", "Array name, for cross-referencing"),
+    ("FRAME", "GEOCENTRIC", "Coordinate frame"),
+    ("ARRAYX", -2484228.6029109913, "Array center coordinates (m)"),
+    ("ARRAYY", -4660044.467216573, "Array center coordinates (m)"),
+    ("ARRAYZ", 3567867.961141405, "Array center coordinates (m)"),
+])
+
     
 
 @dataclass
