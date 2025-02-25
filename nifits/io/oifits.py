@@ -471,7 +471,7 @@ class NI_OSWAVELENGTH(NI_EXTENSION):
     wavelength for each of the slice of the CATM matrix, each of the ``NI_MOD``
     phasors and each column of the ``NI_DSAMP`` matrix.
 
-    If ``NI_OOSWAVELENGTH`` is absent, assume that there is no over or down-
+    If ``NI_OSWAVELENGTH`` is absent, assume that there is no over or down-
     sampling and take the values directly from ``OI_WAVELENGTH``.
 
     **Shorthands:**
@@ -693,7 +693,7 @@ class NI_IOTAGS(NI_EXTENSION):
         """
         return self.data_table["DARK"].data
     @property
-    def outbright(self):
+    def outphot(self):
         """
         The flags of photometric outputs
         """
@@ -968,6 +968,7 @@ H_PREFIX = "HIERARCH NIFITS "
 class nifits(object):
     """Class representation of the nifits object."""
     header: fits.Header = None
+    oi_array: OI_ARRAY = None
     ni_catm: NI_CATM = None
     ni_fov: NI_FOV = None
     ni_kmat: NI_KMAT = None
