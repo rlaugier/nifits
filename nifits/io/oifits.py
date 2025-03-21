@@ -209,7 +209,7 @@ def nulfunc(self, *args, **kwargs):
     raise TypeError
 
 
-NI_OITAG_DEFAULT_HEADER = fits.Header(cards=[("HIERRARCH NIFITS IOSWAPS", False, "The units for output values")])
+NI_OITAG_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS IOSWAPS", False, "The units for output values")])
 
 NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS AMOD_PHAS_UNITS", "rad", "The units for modulation phasors"),
                                         ("HIERARCH NIFITS ARRCOL_UNITS", "m^2", "The units for collecting area")
