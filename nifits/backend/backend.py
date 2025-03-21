@@ -743,7 +743,7 @@ class NI_Backend(object):
             if ni_iotag.outdark[0][i]:
                 typelist.append("Dark")
                 outcolor = "darkblue"
-            outnodename = f"Output {i}\n {" ".join(typelist)} pola {outpol}"
+            outnodename = f"Output {i}\n {' '.join(typelist)} pola {outpol}"
             mydot.node(outnodename, penwidth=mpw, color=outcolor, shape="rectangle", margin="0.01")
             mydot.edge("M", outnodename, color=outcolor, penwidth=mpw)
         return mydot
