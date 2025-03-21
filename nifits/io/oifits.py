@@ -291,6 +291,8 @@ class NI_EXTENSION(object):
         header = hdu.header
         if "HIERARCH NIFITS IUNIT" in header.keys():
             return cls(data_table=data_table, header=header, unit=u.Unit(header["NIFITS IUNIT"]))
+        elif "IUNIT" in header.keys(): # Backwards compatibility
+            return cls(data_table=data_table, header=header, unit=u.Unit(header["IUNIT"]))
         else:
             return cls(data_table=data_table, header=header)
 
@@ -341,8 +343,10 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
         """
         data_array = hdu.data
         header = hdu.header
-        if "IUNIT" in header.keys():
+        if "HIERARCH NIFITS IUNIT" in header.keys():
             return cls(data_array=data_array, header=header, unit=u.Unit(header["NIFITS IUNIT"]))
+        elif "IUNIT" in header.keys(): # Backwards compatibility
+            return cls(data_array=data_array, header=header, unit=u.Unit(header["IUNIT"]))
         else:
             return cls(data_array=data_array, header=header)
     
