@@ -462,7 +462,7 @@ class OI_WAVELENGTH(NI_EXTENSION):
         return (cst_c/(self.lambs*u.m)).value
     @property
     def dnus(self):
-        return (cst_c/(self.dlambs*u.m)).value
+        return np.abs(np.gradient(self.nus))
         
 
 class NI_OSWAVELENGTH(NI_EXTENSION):
@@ -487,7 +487,7 @@ class NI_OSWAVELENGTH(NI_EXTENSION):
       widths.
 
     """ + NI_EXTENSION.__doc__
-    name = "OI_WAVELENGTH"
+    name = "NI_OSWAVELENGTH"
 
     @property
     def lambs(self):
@@ -500,7 +500,7 @@ class NI_OSWAVELENGTH(NI_EXTENSION):
         return (cst_c/(self.lambs*u.m)).value
     @property
     def dnus(self):
-        return (cst_c/(self.dlambs*u.m)).value
+        return np.abs(np.gradient(self.nus))
 
 from dataclasses import field
 from typing import List
@@ -679,7 +679,27 @@ class NI_IOTAGS(NI_EXTENSION):
     """
     data_table: Table = field(default_factory=Table)
     header: fits.Header = field(default_factory=fits.Header)
-    name = "NI_MOD"
+    name = "NI_IOTAGS"
+
+    @classmethod
+    def from_arrays(cls, outbright, outdark, outphot=None,
+                        inpola=None, outpola=None, header=None):
+        from astropy.table import Column, Table
+        outbrightcol = Column(data=outbright,
+                       name="BRIGHT", unit=None,dtype=bool)
+        outphotcol = Column(data=outphot,
+                           name="PHOT", unit=None,dtype=bool)
+        outdarkcol = Column(data=outdark,
+                           name="DARK", unit=None,dtype=bool)
+        inpolcol = Column(data=inpola,
+                           name="OUTPOLA", unit=None,dtype=str)
+        outpolcol = Column(data=outpola,
+                           name="INPOLA", unit=None,dtype=str)
+        iotags_table = Table()
+        iotags_table.add_columns((outbrightcol, outphotcol, outdarkcol, inpolcol, outpolcol))
+        return cls(data_table=iotags_table, header=header)
+
+        
     @property
     def outbright(self):
         """

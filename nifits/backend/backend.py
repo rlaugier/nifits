@@ -657,7 +657,6 @@ class NI_Backend(object):
             return Is
         Ids = np.einsum("l w, t w o m -> t l o m", self.nifits.ni_dsamp.D, Is )
         return Ids
-        
 
     def plot_recorded(self, cmap="viridis", outputs=None, nrows_ncols=None,
                     res_x=1000, res_y=500, interp="nearest"):
@@ -712,6 +711,42 @@ class NI_Backend(object):
         plt.xlabel("MJD")
         plt.ylabel("Wavelength [m]")
         return fig, axarr
+
+    def make_combiner_graph(self):
+        try :
+            import graphviz
+            from graphviz import Digraph
+        except ImportError:
+            print("Graphiviz is needed")
+        ni_iotag = self.nifits.ni_iotags
+        if ni_iotag is None:
+            print("Could not find an iotag object.")
+            return
+        mydot = graphviz.Digraph(comment='The Round Table')
+        mydot.attr(rankdir='LR')
+        mydot.attr("node")
+        mydot.node("M", shape="rectangle", fontsize="22")
+        mpw = "2"
+        for i, inpol in enumerate(ni_iotag.inpola[0]):
+            innodename = f"Iutput {i}\n pola {inpol}"
+            mydot.node(innodename, penwidth=mpw, shape="rectangle", margin="0.01")
+            mydot.edge(innodename, "M", penwidth=mpw, shape="rectangle", margin="0.01")
+        for i, aninput in enumerate(ni_iotag.outdark[0]):
+            typelist = []
+            outpol = ni_iotag.outpola[0][i]
+            if ni_iotag.outbright[0][i]:
+                typelist.append("Bright")
+                outcolor = "orange"
+            if ni_iotag.outphot[0][i]:
+                typelist.append("Photometric")
+                outcolor = "purple"
+            if ni_iotag.outdark[0][i]:
+                typelist.append("Dark")
+                outcolor = "darkblue"
+            outnodename = f"Output {i}\n {" ".join(typelist)} pola {outpol}"
+            mydot.node(outnodename, penwidth=mpw, color=outcolor, shape="rectangle", margin="0.01")
+            mydot.edge("M", outnodename, color=outcolor, penwidth=mpw)
+        return mydot
         
         
             
