@@ -239,7 +239,7 @@ OI_ARRAY_DEFAULT_VLTI_HEADER = fits.Header(cards=[
     ("ARRNAME", "VLTI", "Array name, for cross-referencing"),
     ("FRAME", "GEOCENTRIC", "Coordinate frame"),
     ("ARRAYX", 1946404.3410388362, "Array center coordinates (m)"),
-    ("ARRAYY", -5467644.290798524,"Array center coordinates (m)"),
+    ("ARRAYY", -5467644.290798524, "Array center coordinates (m)"),
     ("ARRAYZ", -2642728.2014442487, "Array center coordinates (m)"),
 ])
     
@@ -289,7 +289,7 @@ class NI_EXTENSION(object):
         """
         data_table = Table(hdu.data)
         header = hdu.header
-        if "HIERARCH NIFITS IUNIT" in header.keys():
+        if "NIFITS IUNIT" in header.keys():
             return cls(data_table=data_table, header=header, unit=u.Unit(header["NIFITS IUNIT"]))
         elif "IUNIT" in header.keys(): # Backwards compatibility
             return cls(data_table=data_table, header=header, unit=u.Unit(header["IUNIT"]))
@@ -343,7 +343,7 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
         """
         data_array = hdu.data
         header = hdu.header
-        if "HIERARCH NIFITS IUNIT" in header.keys():
+        if "NIFITS IUNIT" in header.keys():
             return cls(data_array=data_array, header=header, unit=u.Unit(header["NIFITS IUNIT"]))
         elif "IUNIT" in header.keys(): # Backwards compatibility
             return cls(data_array=data_array, header=header, unit=u.Unit(header["IUNIT"]))
@@ -885,7 +885,8 @@ class NI_FOV(NI_EXTENSION):
         offset = np.zeros((n,2))
         telescope_diameter_q = header["NIFITS FOV_TELDIAM"]*u.Unit(header["NIFITS FOV_TELDIAM_UNIT"])
         telescope_diameter_m = telescope_diameter_q.to(u.m).value
-        mytable, xh2phasor = create_basic_fov_data(telescope_diameter_m, offset=offset,
+        mytable, xh2phasor = create_basic_fov_data(telescope_diameter_m,
+                                    offset=offset,
                                     lamb=lamb, n=n)
         return cls(data_table=mytable, header=header)
 
