@@ -199,6 +199,8 @@ class Post(be.NI_Backend):
         return blackbody_spectrum
 
 
+
+
     def get_blackbody_collected(self, alphas, betas,
                         kernels=True, whiten=True,
                             to_si=True):
@@ -312,7 +314,7 @@ class Post(be.NI_Backend):
             return lim_solid_angle
         elif isinstance(distance, units.Quantity):
             dist_converted = distance.to(radius_unit)
-            lim_radius = 2*dist_converted*md.sqrt(lim_solid_angle/md.pi)
+            lim_radius = dist_converted*md.sqrt(lim_solid_angle/md.pi)
             return lim_radius.to(radius_unit, equivalencies=units.equivalencies.dimensionless_angles())
 
     def get_pdet_tnp(self, transmission_map, pfa=0.046, pdet=0.90):
