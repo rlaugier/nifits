@@ -317,11 +317,118 @@ class Post(be.NI_Backend):
             lim_radius = dist_converted*md.sqrt(lim_solid_angle/md.pi)
             return lim_radius.to(radius_unit, equivalencies=units.equivalencies.dimensionless_angles())
 
-    def get_pdet_tnp(self, transmission_map, pfa=0.046, pdet=0.90):
-        pass
-    
-    def get_sensitivity_tnp(self, transmission_map, pfa=0.046, pdet=0.90):
-        pass
+
+    def get_tnp(self, x):
+        """
+        Untested
+        
+        Computes the Tnp test statistic of the current file. This test statistic
+        is supposed to be distributed as a chi^2 under H_0.
+
+        Arguments:
+            x : Known signature of the signal of interest.
+        
+        Returns:
+            Te : y.T.dot(x) where y is the whitened signal recorded
+            and x is the target .
+        """
+        if hasattr(self.nifits, "ni_kiout"):
+            kappa = self.whiten_signal(self.nifits.ni_kiout.kiout)
+        else:
+            raise NotImplementedError("Needs a NI_KIOUT extension")
+        y = kappa.flatten()
+        return y.T.dot(x)
+
+    def get_pdet_tnp(self, alphas, betas,
+                    solid_angle,
+                    kernels=True, pfa=0.046,
+                    whiten=True,
+                    temperature=None):
+        """
+        Untested:
+        
+        Computes the Pdet of the Tnp for a blackbody detection
+
+        Arguments:
+            alphas : Relative position ra [rad]
+            betas : Ralative position dec [rad]
+            solid_anle : []
+            whiten : (bool)
+            temperature : [K]
+        
+        pfa:
+        * 1 sigma: 0.32
+        * 2 sigma: 0.046
+        * 3 sigma: 0.0027
+        """
+        if temperature is not None:
+            self.add_blackbody(temperature)
+        ref_spectrum = solid_angle * self.get_blackbody_collected(alphas, betas,
+                                                    kernels=kernels,
+                                                    whiten=True,
+                                                    to_si=True)
+        print(ref_spectrum.unit)
+        x = ref_spectrum.reshape(-1, 1000)
+        xTx = np.einsum("o m , o m -> m", x, x)
+        threshold = np.sqrt(xTx)*norm.ppf(1-pfa)
+        # threshold = ncx2.ppf(1-pfa, df=self.fullyflatshape, nc=0.)
+        pdet_Pfa = 1 - norm.cdf((threshold - xTx)/np.sqrt(xTx))
+        return pdet_Pfa
+
+    def get_sensitivity_tnp(self, alphas, betas,
+                    kernels=True,
+                    temperature=None, pfa=0.046, pdet=0.90,
+                    distance=None, radius_unit=units.Rjup,
+                    md=np):
+        """
+        Untested
+        
+        .. code-block:: python
+
+            from scipy.stats import ncx2
+            xs = np.linspace(-10, 10, 100)
+            ys = np.linspace(1e-6, 0.999, 100)
+            u = 1 - ncx2.cdf(xs, df=10, nc=0)
+            v = ncx2.ppf(1 - ys, df=10, nc=0)
+
+            plt.figure()
+            plt.plot(xs, u)
+            plt.show()
+
+            plt.figure()
+            plt.plot(ys, v)
+            plt.plot(u, xs)
+            plt.show()
+        """
+        from scipy.optimize import leastsq
+        if temperature is not None:
+            self.add_blackbody(temperature)
+        ref_spectrum = self.get_blackbody_collected(alphas=alphas,betas=betas,
+                                                    kernels=kernels, whiten=True,
+                                                    to_si=True)
+        print("Ref spectrum unit: ", ref_spectrum.unit)
+        x = (ref_spectrum).reshape((-1, ref_spectrum.shape[-1]))
+        print("Ref signal (x) unit: ", x.unit)
+        print("Ref signal (x) shape: ", x.shape)
+        xTx = md.einsum("m i, i m -> m", x.T, x)
+        threshold = np.sqrt(xTx)*norm.ppf(1-pfa)
+        # threshold = ncx2.ppf(1-pfa, df=self.fullyflatshape, nc=0.)
+        lambda0 = 1.0e-3 * self.fullyflatshape
+        f_map = ref_spectrum\
+                / np.sqrt(xTx) * ( norm.ppf(1 - pfa, loc=0) - norm.ppf(1 - pdet, loc=xTx, scale=np.sqrt(xTx)))
+
+        # The solution lambda is the x^T.x value satisfying Pdet and Pfa
+        # sol = leastsq(residual_pdet_Tnp, lambda0,
+        #                 args=(threshold, self.fullyflatshape, pdet))# AKA lambda
+        # lamb = sol[0][0]
+        # Concatenate the wavelengths
+        lim_solid_angle = f_map
+        if distance is None:
+            return lim_solid_angle
+        elif isinstance(distance, units.Quantity):
+            dist_converted = distance.to(radius_unit)
+            lim_radius = dist_converted*md.sqrt(lim_solid_angle/md.pi)
+            return lim_radius.to(radius_unit, equivalencies=units.equivalencies.dimensionless_angles())
 
 
 massq2sr = (units.mas**2).to(units.sr)
@@ -378,6 +485,22 @@ def residual_pdet_Te(lamb, xsi, rank, targ):
     respdet = 1 - ncx2.cdf(xsi,rank,lamb) - targ
     return respdet
 
+def residual_pdet_Tnp(xTx, xsi, targ):
+    """
+    Computes the residual of Pdet in a NP test.
+    
+    Arguments:
+        xTx     : The noncentrality parameter representing the feature
+        targ     : The target Pdet to converge to
+        xsi      : The location of threshold
+    
+    Returns:
+        The Pdet difference.
+    
+    """
+    
+    Pdet_Pfa = 1 - norm.cdf((xsi - xTx)/np.sqrt(xTx))
+    return Pdet_Pfa - targ
 
 
         

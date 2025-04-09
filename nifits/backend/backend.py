@@ -747,6 +747,45 @@ class NI_Backend(object):
             mydot.node(outnodename, penwidth=mpw, color=outcolor, shape="rectangle", margin="0.01")
             mydot.edge("M", outnodename, color=outcolor, penwidth=mpw)
         return mydot
+
+    def plot_barcode(self, outindex, diffout=False, cmap=None, **kwargs):
+        """
+        Create a scatter plot of the recorded frames.
+
+        Arguments:
+            outindex: (int) The index of output to plot
+            diffout : (bool) The 
+
+        """
+        import matplotlib.pyplot as plt
+        if cmap is None:
+            if diffout:
+                cmap = "coolwarm"
+            else:
+                cmap = "viridis"
+        xs = self.nifits.ni_mod.data_table["MJD"]
+        title_string = f""
+        if not diffout:
+            if hasattr(self.nifits, "ni_iotags"):
+                if self.nifits.ni_iotags is not None:
+                    title_string += self.nifits.ni_iotags.output_type(outindex)
+            for i, awl in enumerate(self.nifits.oi_wavelength.lambs):
+                plt.scatter(xs, awl*np.ones_like(xs), c=self.nifits.ni_iout.iout[:,i,outindex],
+                            marker="s", cmap=cmap, **kwargs)
+        else:
+        
+            cmax = np.nanmax(np.abs(self.nifits.ni_kiout.kiout[:,:,outindex]))
+            cmin = -cmax
+            title_string += " differential"
+            for i, awl in enumerate(self.nifits.oi_wavelength.lambs):
+                plt.scatter(xs, awl*np.ones_like(xs), c=self.nifits.ni_kiout.kiout[:,i,outindex],
+                       marker="s", vmin=cmin, vmax=cmax, cmap=cmap, **kwargs)
+        plt.title(title_string)
+        plt.xlabel("MJD [d]")
+        plt.ylabel("Wavelength [m]")
+        plt.gca().set_aspect("auto")
+        plt.title(f"Output {outindex} {title_string} [{self.nifits.ni_iout.unit}]")
+        plt.colorbar()
         
         
             

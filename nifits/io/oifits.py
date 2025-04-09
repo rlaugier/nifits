@@ -320,6 +320,23 @@ class NI_EXTENSION(object):
     def __len__(self):
         return len(self.data_table)
 
+    def __info__(self):
+        """
+        Generic method to return information.
+        """
+        myinfostring = f"""
+## Generic NIFITS table extension
+
+
++ Length : {self.__len__()}
++ Unit : [{self.unit}]
++ Columns :
+
+"""
+        for acolname in self.data_table.colnames:
+            myinfostring += f"   - **{acolname}** [{self.data_table[acolname].unit}] , shape : {self.data_table[acolname].unit}, dtype : {self.data_table[acolname].dtype} \n"
+        return myinfostring
+
 @dataclass
 class NI_EXTENSION_ARRAY(NI_EXTENSION):
     """
@@ -373,6 +390,21 @@ class NI_EXTENSION_ARRAY(NI_EXTENSION):
     def shape(self):
         return self.data_array.shape
 
+
+    def __info__(self):
+        """
+        Generic method to return information.
+        """
+        myinfostring = f"""
+## Generic NIFITS array extension
+
+
++ Shape : {self.data_array.shape}
++ Data type : {self.data_array.dtype}
++ Unit : [{self.unit}]
+"""
+        return myinfostring
+
 @dataclass
 class NI_EXTENSION_CPX_ARRAY(NI_EXTENSION):
     """
@@ -417,6 +449,20 @@ class NI_EXTENSION_CPX_ARRAY(NI_EXTENSION):
     @property
     def shape(self):
         return self.data_array.shape
+
+    def __info__(self):
+        """
+        Generic method to return information.
+        """
+        myinfostring = f"""
+## Generic NIFITS array extension
+
+
++ Shape : {self.data_array.shape}
++ Data type : {self.data_array.dtype}
++ Unit : [{self.unit}]
+"""
+        return myinfostring
 
 
 class OI_ARRAY(NI_EXTENSION):
@@ -695,9 +741,9 @@ class NI_IOTAGS(NI_EXTENSION):
                            name="PHOT", unit=None,dtype=bool)
         outdarkcol = Column(data=outdark,
                            name="DARK", unit=None,dtype=bool)
-        inpolcol = Column(data=inpola,
+        inpolcol = Column(data=outpola,
                            name="OUTPOLA", unit=None,dtype=str)
-        outpolcol = Column(data=outpola,
+        outpolcol = Column(data=inpola,
                            name="INPOLA", unit=None,dtype=str)
         iotags_table = Table()
         iotags_table.add_columns((outbrightcol, outphotcol, outdarkcol, inpolcol, outpolcol))
@@ -735,6 +781,24 @@ class NI_IOTAGS(NI_EXTENSION):
         """
         return self.data_table["INPOLA"].data
 
+    def output_type(self, index, frame_index=0):
+        """
+        Args:
+            index : The index of an output
+
+        Returns:
+            output_type : (str) characterization of an output type
+        """
+        output_type = ""
+        if self.outdark[frame_index, index]:
+            output_type += f"dark ({self.outpola[frame_index, index]})"
+        elif self.outbright[frame_index, index]:
+            output_type += f"bright ({self.outpola[frame_index, index]})"
+        elif self.outphot[frame_index, index]:
+            output_type += f"photometric ({self.outpola[frame_index, index]})"
+        else:
+            output_type += "undefined"
+        return output_type
 
 @dataclass
 class NI_MOD(NI_EXTENSION):
@@ -821,7 +885,7 @@ class NI_MOD(NI_EXTENSION):
         from each of the observation times given in the rows of ``NI_MOD``
         table.
         """
-        raise NotImplementedError(self.dateobs)
+        raise NotImplementedError("self.dateobs")
         return None
 
     @property
@@ -924,11 +988,20 @@ class NI_FOV(NI_EXTENSION):
             return phasor.astype(complex)
         return xy2phasor
 
+    def __info__(self):
+        mode = self.header["HIERARCH NIFITS FOV_MODE"] 
+        if mode == "diameter_gaussian_radial":
+            mydiam = self.header["HIERARCH NIFITS FOV_TELDIAM"]
+            mydiam_unit = self.header["NIFITS FOV_TELDIAM_UNIT"]
+            myinfostring = f"""
+            ### NI_FOV : definition of the FOV function.
+            
+            * Mode: {mode}
+            * Telescope diameter {mydiam} {mydiam_unit}
+            * offsets : {self.data_table["offsets"]}
 
-
-
-
-
+            """
+            return myinfostring
 
 
 # class NI_MOD(object):

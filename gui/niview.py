@@ -12,6 +12,7 @@ import astropy.io.fits as fits
 from time import time
 
 
+st.set_page_config(layout="wide")
 st.header("NIView")
 st.write("## The `nifits` viewer")
 
@@ -32,23 +33,46 @@ file_in = st.file_uploader("Load a nifits file", type=["nifits"])
 if file_in is not None:
     mynifits = io.nifits.from_nifits(file_in)
 
-    file_tab, trans_tab, collect_tab, combination = st.tabs(("File info", "Transmission map", "Collected light", "Combination"))
+    file_tab, combiner_tab, trans_tab, collect_tab, combination = st.tabs(("File info", "Combiner", "Transmission map", "Collected light", "Combination"))
 
     # st.write(mynifits)
     with file_tab:
+        st.write("## Extensions: ")
         exitsting_extensions = []
         for anext in io.NIFITS_EXTENSIONS:
             if hasattr(mynifits, anext.lower()):
                 exitsting_extensions.append(anext)
                 with st.expander(anext):
-                    st.write(getattr(mynifits, anext.lower()))
+                    the_extension = getattr(mynifits, anext.lower())
+                    if hasattr(the_extension, "__info__"):
+                        st.write(the_extension.__info__())
+                    st.write("## Extension object:")
+                    st.write(the_extension)
+                    if hasattr(the_extension, "header"):
+                        st.write("## Header : \n" + the_extension.header.__repr__())
             else:
                 with st.expander(anext+" - Absent"):
                     st.write(f"No extension {anext}")
 
-    with trans_tab: # A tab to explore the transmission map (transfer function)
+    with combiner_tab:
         abe = be.NI_Backend(mynifits)
         abe.create_fov_function_all()
+        st.write("## Combiner representation")
+        if abe.nifits.ni_iotags is not None:
+            check_iotags = st.checkbox("Plot the combiner IOs (requires graphviz)")
+            if check_iotags:
+                try :
+                    import graphviz
+                except ImportError:
+                    print("Could not find installed graphviz")
+                agraph = abe.make_combiner_graph()
+                st.graphviz_chart(agraph)
+        else:
+            st.write("""Could not find a usable ``NI_IOTAGS`` extension
+                (It is not mandatory)""")
+                
+
+    with trans_tab: # A tab to explore the transmission map (transfer function)
 
         st.write("# Transfer function of the instrument")
 
@@ -157,12 +181,22 @@ if file_in is not None:
                     plt.imshow(mynifits.ni_kcov.data_array[0])
                     plt.xlabel("Differential observable index")
                     plt.colorbar()
+                    plt.title(f"The covariance matrix [{mynifits.ni_kcov.unit}]")
                     st.pyplot(covmat)
     with collect_tab:
+        check_plot_recording = st.checkbox("Plot the recorded intensities?")
+        if check_plot_recording:
+            for i in output_maps:
+                afig = plt.figure()
+                abe.plot_barcode(i, diffout=use_diffout)
+                st.pyplot(afig)
+                
         check_plot_times = st.checkbox("Plot the time of acquisitions?")
+            
+        
         if check_plot_times:
-
             mymjds = np.array(mynifits.ni_mod.data_table["MJD"])
+            st.write("Not implemented")
             for ajd in mymjds:
                 st.write(ajd)
             # from datetime import datetime
@@ -183,55 +217,91 @@ if file_in is not None:
         xtel = np.arange(ntel)
         wls_x = (wls-wls[0])/(wls[-1] - wls[0])
         st.write(wls_x)
-        mod_fig = plt.figure()
-        for arow in mynifits.ni_mod.data_table:
-            plt.text(-4., arow["MJD"], APTime(arow["MJD"], format="mjd").isot)
-            full_wls = [axtel + wls  for axtel in xtel]
-            for i, arow in enumerate(mynifits.ni_mod.data_table):
-                for j, atel in enumerate(xtel):
-                    myc, mys = mod2cs(arow["MOD_PHAS"][:,j])
-                    plt.scatter(atel + wls_x, np.ones_like(wls_x)*arow["MJD"],
-                                s=mys, c=myc, marker="s",
-                                vmin=0, vmax=1,
-                                cmap="gist_rainbow")
-        for atel in xtel:
-            plt.axvline(atel, color="k", linewidth=0.5)
-        plt.axvline(ntel, color="k", linewidth=0.5)
-        plt.colorbar()
-        plt.tight_layout()
-        st.pyplot(mod_fig)
+        check_plot_mods = st.checkbox("Plot the modulation diagram?")
+        if check_plot_mods:
+            mod_fig = plt.figure()
+            for arow in mynifits.ni_mod.data_table:
+                plt.text(-4., arow["MJD"], APTime(arow["MJD"], format="mjd").isot)
+                full_wls = [axtel + wls  for axtel in xtel]
+                for i, arow in enumerate(mynifits.ni_mod.data_table):
+                    for j, atel in enumerate(xtel):
+                        myc, mys = mod2cs(arow["MOD_PHAS"][:,j])
+                        plt.scatter(atel + wls_x, np.ones_like(wls_x)*arow["MJD"],
+                                    s=mys, c=myc, marker="s",
+                                    vmin=0, vmax=1,
+                                    cmap="gist_rainbow")
+            for atel in xtel:
+                plt.axvline(atel, color="k", linewidth=0.5)
+            plt.axvline(ntel, color="k", linewidth=0.5)
+            plt.colorbar()
+            plt.tight_layout()
+            st.pyplot(mod_fig)
 
         ############################################################
         ## Plot of the actual recorded flux ########################
         ############################################################
-
-        # mycmap = "viridis"
-        myoutputs = None
-        myrowcols = None
-        myresx = 1000
-        myresy = 1000
-        fig_recorded, fig_axarr = abe.plot_recorded(
-            cmap=mycmap, outputs=myoutputs, nrows_ncols=myrowcols,
-            res_x=myresx, res_y=myresy
-        )
-        st.pyplot(fig_recorded)
-        pass
+        check_plot_recorded = st.checkbox("Plot the recorded nulls?")
+        if check_plot_recorded:
+            # mycmap = "viridis"
+            myoutputs = None
+            myrowcols = None
+            myresx = 1000
+            myresy = 1000
+            fig_recorded, fig_axarr = abe.plot_recorded(
+                cmap=mycmap, outputs=myoutputs, nrows_ncols=myrowcols,
+                res_x=myresx, res_y=myresy
+            )
+            st.pyplot(fig_recorded)
 
     with combination:
         from kernuller.diagrams import plot_chromatic_matrix, plot_outputs_smart
         from kernuller.diagrams import colortraces, colortraces_0
+
+
+        x_inj = abe.nifits.ni_fov.xy2phasor(np.array([0,]), np.array([0,]), md=np)
+        x_mod = abe.get_modulation_phasor()
+
+        fig_throughput = plt.figure()
+        for i in output_maps:
+            kappa = np.abs(abe.nifits.ni_catm.M[:,i,:])
+            st.write(kappa.shape)
+            if hasattr(abe.nifits , "ni_iotags"):
+                if abe.nifits.ni_iotags is not None:
+                    out_tag = abe.nifits.ni_iotags.output_type(i)
+            else :
+                out_tag = ""
+            inj_throughput = np.abs(x_inj[frame_index,:,0])
+            mod_throughput = np.abs(x_mod[frame_index,:,:])
+            kappa = np.sum(kappa[:,:] * mod_throughput[:,:], axis=1)
+            output_label = f"Out {i} {out_tag}"
+            plt.plot(abe.nifits.oi_wavelength.lambs, kappa, label=output_label)    
+        plt.xlabel("Wavelength [m]")
+        plt.ylabel(f"Equivalent total collecting power [$m^2$]")
+        plt.title("Total equivalent collecting power of at outputs")
+        plt.ylim(0,None)
+        plt.legend()
+        st.pyplot(fig_throughput)
+            
         color_blind_mode = st.checkbox("Color blind mode", value=False)
         if color_blind_mode:
             myctrace = colortraces
         else:
             myctrace = colortraces_0
         mycatm = mynifits.ni_catm.M
+        if hasattr(abe.nifits, "ni_iotags"):
+            if abe.nifits.ni_iotags is not None:
+                mylabels = [f"{i} {abe.nifits.ni_iotags.output_type(i)}"
+                                        for i in range(mycatm.shape[1])]
+        else:
+            mylabels = [f"Out {i}" for i in range(mycatm.shape[1])]
+
         st.write("## Assuming no input modulation")
         fig3, axs, matrix = plot_chromatic_matrix(mycatm,
                                                  None, mynifits.oi_wavelength.lambs,
                                                  colors=myctrace,
                                                  verbose=False, returnmatrix=True, minfrac=0.9,
-                                                 plotout=False, show=False, title="With Tepper couplers")
+                                                 plotout=False, show=False, title="Combiner complex representation",
+                                                 out_label=mylabels)
         fig3.show()
         st.pyplot(fig3)
         st.write("## With the included modulation:")
