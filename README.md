@@ -4,6 +4,11 @@
 
 Standards live and die by their community. In order to get in touch with our community, we have an *ongoing poll*. If you are interested in NIFITS, help us to build a strong, welcoming and prolific community by answering [this poll](https://forms.gle/HVECwQCz8PE6Tvic9).
 
+We are looking for a date for our first community hackathon. The event will take the form of two consecutive days of recommended hackathon work, split between two groups to accommodate different timezone groups. The **early group will operate on two consecutive CEST mornings to be compatible with Australian schedules**. The **late group will operate on two consecutive CEST afternoons to be more compatible with the American schedules**.
+
+Each will start with a 30-45 minutes webinar presentation of the standard and its supporting library, and close on the next day with a quick presentation of the accomplishments from each teams (during the last 30 minutes). The goal is to help you kickstart your own application in constructive (virtual) environment with the **live availability of the NIFITS core team**. [Help us find a date.](https://whenisgood.net/wnrbgy9)
+
+
 ## The `nifits` package
 
 The `nifits` package has two roles:
