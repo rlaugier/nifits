@@ -186,9 +186,10 @@ if file_in is not None:
     with collect_tab:
         check_plot_recording = st.checkbox("Plot the recorded intensities?")
         if check_plot_recording:
+            maxval = st.number_input("Plot clipping :", value=None)
             for i in output_maps:
                 afig = plt.figure()
-                abe.plot_barcode(i, diffout=use_diffout)
+                abe.plot_barcode(i, diffout=use_diffout, valminmax=maxval)
                 st.pyplot(afig)
                 
         check_plot_times = st.checkbox("Plot the time of acquisitions?")
