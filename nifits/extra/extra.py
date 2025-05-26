@@ -199,8 +199,6 @@ class Post(be.NI_Backend):
         return blackbody_spectrum
 
 
-
-
     def get_blackbody_collected(self, alphas, betas,
                         kernels=True, whiten=True,
                             to_si=True):
@@ -230,6 +228,7 @@ class Post(be.NI_Backend):
             return blackbody_signal.to(blackbody_signal.unit.to_system(units.si)[0])
         else:
             return blackbody_signal
+
     def get_Te(self):
         """
             Computes the Te test statistic of the current file. This test statistic
@@ -403,7 +402,8 @@ class Post(be.NI_Backend):
         from scipy.optimize import leastsq
         if temperature is not None:
             self.add_blackbody(temperature)
-        ref_spectrum = self.get_blackbody_collected(alphas=alphas,betas=betas,
+        ref_solid_angle = 1e-20*units.rad**2
+        ref_spectrum = ref_solid_angle * self.get_blackbody_collected(alphas=alphas,betas=betas,
                                                     kernels=kernels, whiten=True,
                                                     to_si=True)
         print("Ref spectrum unit: ", ref_spectrum.unit)
@@ -413,15 +413,18 @@ class Post(be.NI_Backend):
         xTx = md.einsum("m i, i m -> m", x.T, x)
         threshold = np.sqrt(xTx)*norm.ppf(1-pfa)
         # threshold = ncx2.ppf(1-pfa, df=self.fullyflatshape, nc=0.)
-        lambda0 = 1.0e-3 * self.fullyflatshape
-        f_map = ref_spectrum\
-                / np.sqrt(xTx) * ( norm.ppf(1 - pfa, loc=0) - norm.ppf(1 - pdet, loc=xTx, scale=np.sqrt(xTx)))
+        # lambda0 = 1.0e-3 * self.fullyflatshape
+        f_map = ref_solid_angle\
+                / np.sqrt(xTx) * ( norm.ppf(1 - pfa, loc=0, scale=1) - norm.ppf(1 - pdet, loc=0, scale=1))
 
         # The solution lambda is the x^T.x value satisfying Pdet and Pfa
         # sol = leastsq(residual_pdet_Tnp, lambda0,
         #                 args=(threshold, self.fullyflatshape, pdet))# AKA lambda
         # lamb = sol[0][0]
         # Concatenate the wavelengths
+
+        # from pdb import set_trace
+        # set_trace()
         lim_solid_angle = f_map
         if distance is None:
             return lim_solid_angle
