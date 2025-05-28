@@ -100,6 +100,9 @@ class PointCollection(object):
             unit   :   The unit to use for interactions
 
         """
+        if radius <= 0:
+            raise ValueError("The radius must be a positive value.")
+
         alpha = md.pi * (3 - md.sqrt(5))  # the "golden angle"
         points = []
         for k in md.arange(n):
@@ -127,6 +130,9 @@ class PointCollection(object):
 
         **Handles:**
         """
+        if a_coords.size == 0 or b_coords.size == 0:
+            raise ValueError("Both `a_coords` and `b_coords` must contain at least one element.")
+
         aa, bb = md.meshgrid(a_coords, b_coords)
         original_shape = aa.shape
         aa = aa.flatten()
