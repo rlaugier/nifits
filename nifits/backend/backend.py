@@ -1,5 +1,3 @@
-
-
 """
 Backend module
 --------------
@@ -12,28 +10,19 @@ It offers a limited capability to be powered with computing backends
 that have a numpy-compatible API.
 """
 
+import types
 
+import astropy.units as units
+import numpy as np
 
-
-
-
-
-
-
-
-import nifits.io as io
 from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
 from nifits.io.oifits import nifits as NIFITSClass
-import numpy as np
-import numpy.typing
-import astropy.units as units
-import types
+
 ModuleType = types.ModuleType
 
 # from numpy.typing import ArrayLike
 # A hack to fix the documentation of type hinting
 ArrayLike = np.typing.ArrayLike
-
 
 from dataclasses import dataclass
 
@@ -41,7 +30,6 @@ from einops import rearrange
 
 mas2rad = units.mas.to(units.rad)
 rad2mas = units.rad.to(units.mas)
-
 
 
 # TODO Add methods to __add__ PointCollections for variable sampling
@@ -84,6 +72,7 @@ class PointCollection(object):
     aa: ArrayLike = None
     bb: ArrayLike = None
     unit: units.Unit = None
+
     def __post_init__(self):
         self.shape = self.aa.shape
         if self.unit is None:
@@ -92,12 +81,12 @@ class PointCollection(object):
             self.orig_shape = self.shape
 
     @classmethod
-    def from_uniform_disk(cls, radius: float = None,
-                        n: int = 10,
-                        phi_0: float = 0.,
-                        offset: ArrayLike = np.array((0.,0.)),
-                        md: ModuleType = np,
-                        unit: units.Unit = units.mas):
+    def from_uniform_disk(cls, radius,
+                          n: int = 10,
+                          phi_0: float = 0.,
+                          offset: ArrayLike = np.array((0., 0.)),
+                          md: ModuleType = np,
+                          unit: units.Unit = units.mas):
         """
             Create a point collection as a uniformly sampled disk.
 
@@ -111,20 +100,20 @@ class PointCollection(object):
             unit   :   The unit to use for interactions
 
         """
-        alpha = md.pi * (3 - md.sqrt(5))    # the "golden angle"
+        alpha = md.pi * (3 - md.sqrt(5))  # the "golden angle"
         points = []
         for k in md.arange(n):
-          theta = k * alpha + phi_0
-          r = radius * md.sqrt(float(k)/n)
-          points.append((r * md.cos(theta), r * md.sin(theta)))
-        points = np.array(points).T + offset[:,None]
+            theta = k * alpha + phi_0
+            r = radius * md.sqrt(float(k) / n)
+            points.append((r * md.cos(theta), r * md.sin(theta)))
+        points = np.array(points).T + offset[:, None]
         myobj = cls(*points, unit=unit)
         return myobj
 
     @classmethod
     def from_grid(cls, a_coords: ArrayLike, b_coords: ArrayLike,
-                        md: ModuleType = np,
-                        unit: units.Unit = units.mas):
+                  md: ModuleType = np,
+                  unit: units.Unit = units.mas):
         """
             Create a point collection as a cartesian grid.
 
@@ -150,10 +139,10 @@ class PointCollection(object):
 
     @classmethod
     def from_segment(cls, start_coords: ArrayLike,
-                        end_coords: ArrayLike,
-                        n_samples: int,
-                        md: ModuleType = np,
-                        unit: units.Unit = units.mas):
+                     end_coords: ArrayLike,
+                     n_samples: int,
+                     md: ModuleType = np,
+                     unit: units.Unit = units.mas):
         """
             Create a point collection as a cartesian grid.
 
@@ -176,9 +165,9 @@ class PointCollection(object):
 
     @classmethod
     def from_centered_square_grid(cls,
-                        radius,
-                        resolution,
-                        md: ModuleType = np):
+                                  radius,
+                                  resolution,
+                                  md: ModuleType = np):
         """
             Create a centered square cartesian grid object
 
@@ -189,10 +178,9 @@ class PointCollection(object):
         a_coords = md.linspace(-radius, radius, resolution)
         b_coords = md.linspace(-radius, radius, resolution)
         myobj = cls.from_grid(a_coords=a_coords,
-                            b_coords=b_coords,
-                            md=md)
+                              b_coords=b_coords,
+                              md=md)
         return myobj
-        
 
     @property
     def coords(self):
@@ -201,17 +189,17 @@ class PointCollection(object):
         flat arrays.
         """
         return (self.aa, self.bb)
-    
+
     @property
     def coords_rad(self):
-        return (mas2rad*self.aa, mas2rad*self.bb)
+        return (mas2rad * self.aa, mas2rad * self.bb)
 
     @property
     def coords_radial(self):
         """
         Returns the radial coordinates of points. (rho, theta) ([unit], [rad]).
         """
-        cpx = self.aa + 1j*self.bb
+        cpx = self.aa + 1j * self.bb
         return (np.abs(cpx), np.angle(cpx))
 
     @property
@@ -220,20 +208,21 @@ class PointCollection(object):
             return (self.aa.reshape(self.orig_shape), self.bb.reshape(self.orig_shape))
         else:
             raise AttributeError("Did not have an original shape")
+
     def plot_frame(self, z=None, frame_index=0, wl_index=0,
-                        out_index=0, mycmap=None, marksize_increase=1.0,
-                        colorbar=True, xlabel=True, title=True):
+                   out_index=0, mycmap=None, marksize_increase=1.0,
+                   colorbar=True, xlabel=True, title=True):
         import matplotlib.pyplot as plt
-        marksize = marksize_increase * 50000/self.shape[0]
+        marksize = marksize_increase * 50000 / self.shape[0]
         if len(self.orig_shape) == 1:
-            plt.scatter(*self.coords, c=z[frame_index,wl_index,out_index,:],
-                    cmap=mycmap, s=marksize)
+            plt.scatter(*self.coords, c=z[frame_index, wl_index, out_index, :],
+                        cmap=mycmap, s=marksize)
             plt.gca().set_aspect("equal")
         else:
-            plt.imshow(z[frame_index,wl_index,out_index,:].reshape((self.orig_shape)),
-                cmap=mycmap, extent=self.extent)
+            plt.imshow(z[frame_index, wl_index, out_index, :].reshape((self.orig_shape)),
+                       cmap=mycmap, extent=self.extent)
             plt.gca().set_aspect("equal")
-            
+
         if colorbar:
             plt.colorbar()
         if xlabel is True:
@@ -244,8 +233,6 @@ class PointCollection(object):
             plt.title(f"Output {out_index} for frame {frame_index}")
         elif title is not False:
             plt.title(title)
-
-            
 
     def __add__(self, other):
         """
@@ -261,12 +248,12 @@ class PointCollection(object):
         else:
             md = np
         new = copy(self)
-        new.aa = md.concatenate((new.aa, other.aa*other.unit.to(self.unit)))
-        new.bb = md.concatenate((new.bb, other.bb*other.unit.to(self.unit)))
+        new.aa = md.concatenate((new.aa, other.aa * other.unit.to(self.unit)))
+        new.bb = md.concatenate((new.bb, other.bb * other.unit.to(self.unit)))
         if hasattr(self, "cc"):
             if not hasattr(other, "cc"):
                 other.cc = md.zeros_like(other.aa)
-            new.cc = md.concatenate((new.cc, other.cc*other.unit.to(self.unit)))
+            new.cc = md.concatenate((new.cc, other.cc * other.unit.to(self.unit)))
 
         if hasattr(new, "extent"):
             del new.extent
@@ -275,6 +262,7 @@ class PointCollection(object):
         if hasattr(new, "orig_shape"):
             del new.orig_shape
         return new
+
     def transform(self, matrix, md=np):
         """
         Produce a linear transform of the coordinates.
@@ -287,10 +275,10 @@ class PointCollection(object):
             self.cc = md.zeros_like(self.aa)
         vectors = md.vstack((self.aa, self.bb, self.cc))
         transformed = md.dot(matrix, vectors)
-        self.aa = transformed[0,:]
-        self.bb = transformed[1,:]
-        self.cc = transformed[2,:]
-        
+        self.aa = transformed[0, :]
+        self.bb = transformed[1, :]
+        self.cc = transformed[2, :]
+
 
 @dataclass
 class MovingCollection(object):
@@ -301,38 +289,40 @@ class MovingCollection(object):
         arraypoints = np.array([thecollec.coords_rad for thecollec in self.series])
         arranged = rearrange(arraypoints, "time coord points -> coord time points")
         return arranged
-        
+
     @property
     def coords(self):
         arraypoints = np.array([thecollec.coords for thecollec in self.series])
         arranged = rearrange(arraypoints, "time coord points -> coord time points")
         return arranged
-        
+
     @property
     def coords_radial(self):
         """
         Returns the radial coordinates of points. (rho, theta) ([unit], [rad]).
 
         """
-        cpx = self.aa + 1j*self.bb
+        cpx = self.aa + 1j * self.bb
         return (np.abs(cpx), np.angle(cpx))
-        
+
     @property
     def coords_shaped(self):
         if hasattr(self.series[0], "orig_shape"):
-            reshaped = self.coords[:,:,self.series[0].orig_shape]
+            reshaped = self.coords[:, :, self.series[0].orig_shape]
             return reshaped
         else:
             raise AttributeError("Did not have an original shape")
+
 
 class NI_Backend(object):
     """
     A class to produce calculations based on the NIFITS standard.
 
     """
+
     # def __init__(self, myfits: type(io.oifits.NIFITS)):
     def __init__(self, nifits: NIFITSClass = None,
-                    module=np):
+                 module=np):
         self.nifits = nifits
         """
         Backend object. Typically created empty. The nifits
@@ -348,8 +338,8 @@ class NI_Backend(object):
         """
 
     def add_instrument_definition(self, nifits_instrument: NIFITSClass = None,
-                                    force: bool = False,
-                                    verbose: bool = True):
+                                  force: bool = False,
+                                  verbose: bool = True):
         """
         Adds the instrument definition to the model.
         
@@ -367,17 +357,17 @@ class NI_Backend(object):
                 for anext in NIFITS_EXTENSIONS[STATIC_EXTENSIONS]:
                     if hasattr(nifits_instrument, anext.lower()):
                         if (not hasattr(self.nifits, anext.lower())) \
-                            or force:
+                                or force:
                             self.__setattr__(anext.lower(),
-                                nifits_instrument.__getattribute__(anext.lower()))
+                                             nifits_instrument.__getattribute__(anext.lower()))
                         else:
                             print(f"Local nifits, already has {anext.lower()}")
                     else:
                         print(f"Could not find {anext.lower()}")
-    
+
     def add_observation_data(self, nifits_data: NIFITSClass = None,
-                                    force: bool = False,
-                                    verbose: bool = True):
+                             force: bool = False,
+                             verbose: bool = True):
         """
         Adds the observation data to the model.
         
@@ -395,9 +385,9 @@ class NI_Backend(object):
                 for anext in NIFITS_EXTENSIONS[np.logical_not(STATIC_EXTENSIONS)]:
                     if hasattr(nifits_data, anext.lower()):
                         if (not hasattr(self.nifits, anext.lower())) \
-                            or force:
+                                or force:
                             self.__setattr__(anext.lower(),
-                                nifits_data.__getattribute__(anext.lower()))
+                                             nifits_data.__getattribute__(anext.lower()))
                         else:
                             print(f"Local nifits, already has {anext.lower()}")
                     else:
@@ -416,11 +406,12 @@ class NI_Backend(object):
         """
         assert self.nifits.ni_fov.header["NIFITS FOV_MODE"] == "diameter_gaussian_radial"
         D = (self.nifits.ni_fov.header["NIFITS FOV_TELDIAM"] \
-                *units.Unit(self.nifits.ni_fov.header["NIFITS FOV_TELDIAM_UNIT"]))\
-                    .to(units.m).value
-        r_0 = (1/2*self.nifits.oi_wavelength.lambs/D)# *units.rad.to(units.mas)
+             * units.Unit(self.nifits.ni_fov.header["NIFITS FOV_TELDIAM_UNIT"])) \
+            .to(units.m).value
+        r_0 = (1 / 2 * self.nifits.oi_wavelength.lambs / D)  # *units.rad.to(units.mas)
         offset = md.array(self.nifits.ni_fov.data_table["offsets"])
-        def xy2phasor(x,y, md=md):
+
+        def xy2phasor(x, y, md=md):
             """
             x and y in rad.
 
@@ -429,12 +420,13 @@ class NI_Backend(object):
                 y     : ArrayLike [rad] Coordinate in the Fov.
 
             """
-            r = md.hypot(x[None, None,:]-offset[:,:,0,None], y[None,None,:]-offset[:,:,1,None])
-            phasor = md.exp(-(r[:,:]/r_0[:,None])**2)
+            r = md.hypot(x[None, None, :] - offset[:, :, 0, None], y[None, None, :] - offset[:, :, 1, None])
+            phasor = md.exp(-(r[:, :] / r_0[:, None]) ** 2)
             return phasor.astype(complex)
+
         self.nifits.ni_fov.xy2phasor = xy2phasor
 
-        def xy2phasor_moving(x,y):
+        def xy2phasor_moving(x, y):
             """
             Employed to deal with point-samples that move in the FoV
             during the series of frames.
@@ -446,9 +438,10 @@ class NI_Backend(object):
                 y     : ArrayLike [rad] (time, point) Coordinate in the Fov.
 
             """
-            r = md.hypot(x[:, None,:]-offset[:,:,0,None], y[:,None,:]-offset[:,:,1,None])
-            phasor = md.exp(-(r[:,:]/r_0[:,None])**2)
+            r = md.hypot(x[:, None, :] - offset[:, :, 0, None], y[:, None, :] - offset[:, :, 1, None])
+            phasor = md.exp(-(r[:, :] / r_0[:, None]) ** 2)
             return phasor.astype(complex)
+
         self.nifits.ni_fov.xy2phasor_moving = xy2phasor_moving
 
     def get_modulation_phasor(self, md=np):
@@ -464,10 +457,10 @@ class NI_Backend(object):
         # mods = md.array([a  for a in self.nifits.ni_mod.phasors]).T
         mods = md.array(self.nifits.ni_mod.all_phasors)
         col_area = md.array(self.nifits.ni_mod.arrcol)
-        return mods*md.sqrt(col_area)[:,None,:]
+        return mods * md.sqrt(col_area)[:, None, :]
 
     def geometric_phasor(self, alpha, beta, include_mod=True,
-                            md=np):
+                         md=np):
         """
         Returns the complex phasor corresponding to the locations
         of the family of sources
@@ -483,32 +476,32 @@ class NI_Backend(object):
         """
         xy_array = self.nifits.ni_mod.appxy
         lambs = md.array(self.nifits.oi_wavelength.lambs)
-        k = 2*md.pi/lambs
+        k = 2 * md.pi / lambs
         a = md.array((alpha, beta), dtype=md.float64)
         # print(xy_array.shape)
         # print(a.shape)
         # phi = k[:,None,None,None] * md.array([anxy_array[:,:].dot(a[:,:]) for anxy_array in xy_array])
-        phi = k[:,None,None,None] * md.einsum("t a x, x m -> t a m", xy_array[:,:,:], a[:,:])
+        phi = k[:, None, None, None] * md.einsum("t a x, x m -> t a m", xy_array[:, :, :], a[:, :])
         # print(a.shape)
-        b = md.exp(1j*phi)
+        b = md.exp(1j * phi)
         if include_mod:
             mods = self.get_modulation_phasor(md=md)
-            b *= mods[:,:,None]
+            b *= mods[:, :, None]
         # print(b.shape)
-        return b.transpose((1,0,2,3))
-        
+        return b.transpose((1, 0, 2, 3))
+
     def get_Is(self, xs, md=np):
         """
         Get intensity from an array of sources.
 
         """
         E = md.einsum("w o i , t w i m -> t w o m", self.nifits.ni_catm.M, xs)
-        I = md.abs(E)**2
+        I = md.abs(E) ** 2
         return I
 
     def get_KIs(self,
-                    Iarray:ArrayLike,
-                    md: ModuleType = np):
+                Iarray: ArrayLike,
+                md: ModuleType = np):
         r"""
         Get the prost-processed observable from an array of output intensities. The
         post-processing matrix K is taken from ``self.nifits.ni_kmat.K``
@@ -521,12 +514,12 @@ class NI_Backend(object):
             The vector :math:`\boldsymbol{\kappa} = \mathbf{K}\cdot\mathbf{I}`
 
         """
-        KI = md.einsum("k o, t w o m -> t w k m", self.nifits.ni_kmat.K[:,:], Iarray)
+        KI = md.einsum("k o, t w o m -> t w k m", self.nifits.ni_kmat.K[:, :], Iarray)
         return KI
-        
+
     def get_all_outs(self, alphas, betas,
-                        kernels=False,
-                        md=np):
+                     kernels=False,
+                     md=np):
         """
         Compute the transmission map for an array of coordinates. The map can be seen
         as equivalent collecting power expressed in [m^2] for each point sampled so as
@@ -549,26 +542,25 @@ class NI_Backend(object):
         # The phasor from the incidence on the array:
         xs = self.geometric_phasor(alphas, betas, include_mod=False, md=md)
         # print("xs", xs)
-        
+
         # The phasor from the spatial filtering:
         x_inj = self.nifits.ni_fov.xy2phasor(alphas, betas, md=md)
         # print("x_inj", x_inj)
-        
+
         # The phasor from the internal modulation
         # x_mod = self.nifits.ni_mod.all_phasors
         x_mod = self.get_modulation_phasor()
         # print("x_mod", x_mod)
-        
-        Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None], md=md)
+
+        Is = self.get_Is(xs * x_inj[:, :, None, :] * x_mod[:, :, :, None], md=md)
         if kernels:
             KIs = self.get_KIs(Is, md=md)
             return self.downsample(KIs)
         else:
             return self.downsample(Is)
 
-
     def moving_geometric_phasor(self, alphas, betas, include_mod=True,
-                            md=np):
+                                md=np):
         """
         Returns the complex phasor corresponding to the locations
         of the family of sources
@@ -585,14 +577,14 @@ class NI_Backend(object):
         """
         xy_array = md.array(self.nifits.ni_mod.appxy)
         lambs = md.array(self.nifits.oi_wavelength.lambs)
-        k = 2*md.pi/lambs
+        k = 2 * md.pi / lambs
         a = md.array((alphas, betas), dtype=md.float64)
-        phi = k[:,None,None,None] * md.einsum("t a x, x t m -> t a m", xy_array[:,:,:], a[:,:,:])
-        b = md.exp(1j*phi)
+        phi = k[:, None, None, None] * md.einsum("t a x, x t m -> t a m", xy_array[:, :, :], a[:, :, :])
+        b = md.exp(1j * phi)
         if include_mod:
             mods = self.get_modulation_phasor(md=md)
-            b *= mods[:,:,None]
-        return b.transpose((1,0,2,3))
+            b *= mods[:, :, None]
+        return b.transpose((1, 0, 2, 3))
 
     def get_moving_outs(self, alphas, betas,
                         kernels=False,
@@ -619,17 +611,17 @@ class NI_Backend(object):
         # The phasor from the incidence on the array:
         xs = self.moving_geometric_phasor(alphas, betas, include_mod=False)
         # print("xs", xs)
-        
+
         # The phasor from the spatial filtering:
         x_inj = self.nifits.ni_fov.xy2phasor_moving(alphas, betas)
         # print("x_inj", x_inj)
-        
+
         # The phasor from the internal modulation
         # x_mod = self.nifits.ni_mod.all_phasors
         x_mod = self.get_modulation_phasor()
         # print("x_mod", x_mod)
-        
-        Is = self.get_Is(xs * x_inj[:,:,None,:] * x_mod[:,:,:,None], md=md)
+
+        Is = self.get_Is(xs * x_inj[:, :, None, :] * x_mod[:, :, :, None], md=md)
         if kernels:
             KIs = self.get_KIs(Is, md=md)
             return self.downsample(KIs)
@@ -655,11 +647,11 @@ class NI_Backend(object):
         """
         if (self.nifits.ni_dsamp is None) or (self.nifits.ni_oswavelength is None):
             return Is
-        Ids = np.einsum("l w, t w o m -> t l o m", self.nifits.ni_dsamp.D, Is )
+        Ids = np.einsum("l w, t w o m -> t l o m", self.nifits.ni_dsamp.D, Is)
         return Ids
 
     def plot_recorded(self, cmap="viridis", outputs=None, nrows_ncols=None,
-                    res_x=1000, res_y=500, interp="nearest"):
+                      res_x=1000, res_y=500, interp="nearest"):
         import matplotlib.pyplot as plt
         from scipy.interpolate import griddata
         if outputs is None:
@@ -671,30 +663,30 @@ class NI_Backend(object):
         n_frames = self.nifits.ni_iout.data_table["value"].shape[0]
         n_wls = self.nifits.ni_iout.data_table["value"].shape[1]
         if nrows_ncols is None:
-            test_ncols  = n_subplots//2
+            test_ncols = n_subplots // 2
             if test_ncols > 4:
                 ncols = 4
             nrows, ncols = col_row_numbers(n_subplots)
-        else :
+        else:
             nrows, ncols = nrows_ncols
         max_time = np.max(self.nifits.ni_mod.data_table["MJD"])
         min_time = np.min(self.nifits.ni_mod.data_table["MJD"])
         max_wl = np.max(self.nifits.oi_wavelength.lambs)
         min_wl = np.min(self.nifits.oi_wavelength.lambs)
         gridx, gridy = np.meshgrid(np.linspace(min_time, max_time, res_x),
-                                        np.linspace(min_wl, max_wl, res_y))
+                                   np.linspace(min_wl, max_wl, res_y))
         gridextent = [min_time, max_time, min_wl, max_wl]
 
         fig, axarr = plt.subplots(nrows=nrows, ncols=ncols, sharex=True, sharey=True)
         points = np.array(np.meshgrid(self.nifits.ni_mod.data_table["MJD"],
-                                        self.nifits.oi_wavelength.lambs))
-        points = points.reshape((2,-1)).T
+                                      self.nifits.oi_wavelength.lambs))
+        points = points.reshape((2, -1)).T
         # points = points.transpose(1,2,0)
         # print("points", points.shape)
         # print("data", np.array(self.nifits.ni_iout.data_table["value"]).shape)
 
         for i in range(n_subplots):
-            thevals = self.nifits.ni_iout.data_table["value"][:,:,i]
+            thevals = self.nifits.ni_iout.data_table["value"][:, :, i]
             thevals = thevals.T.flatten()
             # print("thevals", thevals.shape)
             # print("points", points.shape)
@@ -713,7 +705,7 @@ class NI_Backend(object):
         return fig, axarr
 
     def make_combiner_graph(self):
-        try :
+        try:
             import graphviz
             from graphviz import Digraph
         except ImportError:
@@ -770,33 +762,27 @@ class NI_Backend(object):
                 if self.nifits.ni_iotags is not None:
                     title_string += self.nifits.ni_iotags.output_type(outindex)
             for i, awl in enumerate(self.nifits.oi_wavelength.lambs):
-                plt.scatter(xs, awl*np.ones_like(xs), c=self.nifits.ni_iout.iout[:,i,outindex],
+                plt.scatter(xs, awl * np.ones_like(xs), c=self.nifits.ni_iout.iout[:, i, outindex],
                             marker="s", cmap=cmap, **kwargs)
         else:
-        
-            cmax = np.nanmax(np.abs(self.nifits.ni_kiout.kiout[:,:,outindex]))
+
+            cmax = np.nanmax(np.abs(self.nifits.ni_kiout.kiout[:, :, outindex]))
             cmin = -cmax
             title_string += " differential"
             for i, awl in enumerate(self.nifits.oi_wavelength.lambs):
-                plt.scatter(xs, awl*np.ones_like(xs), c=self.nifits.ni_kiout.kiout[:,i,outindex],
-                       marker="s", vmin=cmin, vmax=cmax, cmap=cmap, **kwargs)
+                plt.scatter(xs, awl * np.ones_like(xs), c=self.nifits.ni_kiout.kiout[:, i, outindex],
+                            marker="s", vmin=cmin, vmax=cmax, cmap=cmap, **kwargs)
         plt.title(title_string)
         plt.xlabel("MJD [d]")
         plt.ylabel("Wavelength [m]")
         plt.gca().set_aspect("auto")
         plt.title(f"Output {outindex} {title_string} [{self.nifits.ni_iout.unit}]")
         plt.colorbar()
-        
-        
-            
+
+
 def col_row_numbers(n, col_ceiling=4):
     ncols = int(np.sqrt(n))
-    if ncols >col_ceiling:
-        ncols=col_ceiling
-    nrows = int(np.ceil(n/ncols))
-    return nrows, ncols        
-
-        
-        
-    
-
+    if ncols > col_ceiling:
+        ncols = col_ceiling
+    nrows = int(np.ceil(n / ncols))
+    return nrows, ncols
