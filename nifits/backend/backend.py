@@ -392,8 +392,8 @@ class NI_Backend(object):
                     if hasattr(nifits_data, anext.lower()):
                         if (not hasattr(self.nifits, anext.lower())) \
                                 or force:
-                            self.__setattr__(anext.lower(),
-                                             nifits_data.__getattribute__(anext.lower()))
+                            self.nifits.__setattr__(anext.lower(),
+                                                    nifits_data.__getattribute__(anext.lower()))
                         else:
                             print(f"Local nifits, already has {anext.lower()}")
                     else:
