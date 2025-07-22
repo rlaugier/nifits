@@ -748,7 +748,7 @@ class NI_Backend(object):
             mydot.edge("M", outnodename, color=outcolor, penwidth=mpw)
         return mydot
 
-    def plot_barcode(self, outindex, diffout=False, cmap=None, **kwargs):
+    def plot_barcode(self, outindex, diffout=False, cmap=None, valminmax=None, **kwargs):
         """
         Create a scatter plot of the recorded frames.
 
@@ -773,9 +773,12 @@ class NI_Backend(object):
                 plt.scatter(xs, awl*np.ones_like(xs), c=self.nifits.ni_iout.iout[:,i,outindex],
                             marker="s", cmap=cmap, **kwargs)
         else:
-        
-            cmax = np.nanmax(np.abs(self.nifits.ni_kiout.kiout[:,:,outindex]))
-            cmin = -cmax
+            if valminmax is None:
+                cmax = np.nanmax(np.abs(self.nifits.ni_kiout.kiout[:,:,outindex]))
+                cmin = -cmax
+            else:
+                cmin = -valminmax
+                cmax = valminmax
             title_string += " differential"
             for i, awl in enumerate(self.nifits.oi_wavelength.lambs):
                 plt.scatter(xs, awl*np.ones_like(xs), c=self.nifits.ni_kiout.kiout[:,i,outindex],

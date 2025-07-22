@@ -399,7 +399,6 @@ class Post(be.NI_Backend):
             plt.plot(u, xs)
             plt.show()
         """
-        from scipy.optimize import leastsq
         if temperature is not None:
             self.add_blackbody(temperature)
         ref_solid_angle = 1e-20*units.rad**2

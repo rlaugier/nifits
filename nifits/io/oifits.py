@@ -220,8 +220,7 @@ NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS AMOD_PHAS_UNITS", "
 NI_FOV_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS FOV_MODE","diameter_gaussian_radial","Type of FOV definition"),
                                         ("HIERARCH NIFITS FOV_offset"),
                                         ("HIERARCH NIFITS FOV_TELDIAM", 8.0, "diameter of a collecting aperture for FOV"),
-                                        ("HIERARCH NIFITS FOV_TELDIAM_UNIT", "m", ""),
-                                        ("HIERARCH NIFITS WL_SHIFT_MODE", "")])
+                                        ("HIERARCH NIFITS FOV_TELDIAM_UNIT", "m", ""),])
 
 """
 Obtaining the goecentric location of observatories. (unchecked)
