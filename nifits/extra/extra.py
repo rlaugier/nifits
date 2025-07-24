@@ -42,6 +42,20 @@ from scipy.stats import ncx2 as ncx2
 from scipy.stats import norm as norm
 from scipy.stats import chi2 as chi2
 
+def local_sqrtm(amatrix):
+    """
+    Arguments:
+        amatrix : A square matrix
+
+    Retrurns: 
+        sqrt_matrx : The square root of the input
+    """
+    # Eigendecomposition
+    evalues, evectors = np.linalg.eig(amatrix)
+    # Checking for singularity
+    assert not np.isclose(evalues, 0).any(), "The matrix is singular (or too close to it)"
+    sqrt_matrix = evectors * np.sqrt(evalues) @ np.linalg.inv(evectors)
+    return sqrt_matrix
 
 class Post(be.NI_Backend):
     """
@@ -59,7 +73,8 @@ class Post(be.NI_Backend):
     """
     def create_whitening_matrix(self,
                                 replace: bool = False,
-                                md: types.ModuleType = np):
+                                md: types.ModuleType = np,
+                                local: bool = True):
         """
             Updates the whitening matrix:
 
@@ -79,7 +94,10 @@ class Post(be.NI_Backend):
 
         Ws = []
         for amat in self.nifits.ni_kcov.data_array:
-            Ws.append(np.linalg.inv(sqrtm(amat)))
+            if local:
+                Ws.append(np.linalg.inv(local_sqrtm(amat)))
+            else:
+                Ws.append(np.linalg.inv(sqrtm(amat)))
         self.Ws = md.array(Ws)
         self.W_unit = self.nifits.ni_kcov.unit**(-1/2)
         if hasattr(self.nifits, "ni_kiout"):
