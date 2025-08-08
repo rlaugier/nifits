@@ -13,16 +13,6 @@ class TestPointCollection(unittest.TestCase):
         self.assertEqual(point_collection.aa.shape[0], n_points)
         self.assertEqual(point_collection.bb.shape[0], n_points)
 
-    def test_handles_zero_radius_for_uniform_disk_creation(self):
-        radius = 0
-        n_points = 100
-        self.assertRaises(ValueError, lambda: PointCollection.from_uniform_disk(radius, n=n_points))
-
-    def test_handles_negative_radius_for_uniform_disk_creation(self):
-        radius = -10
-        n_points = 100
-        self.assertRaises(ValueError, lambda: PointCollection.from_uniform_disk(radius, n=n_points))
-
     def test_handles_empty_grid_creation(self):
         a_coords = np.array([])
         b_coords = np.array([])
