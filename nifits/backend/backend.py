@@ -662,6 +662,13 @@ class NI_Backend(object):
 
     def plot_recorded(self, cmap="viridis", outputs=None, nrows_ncols=None,
                     res_x=1000, res_y=500, interp="nearest"):
+        """
+            Quick plot summarizing the acquired data
+
+        Returns:
+            fig    : (plt.figure)
+            axarr  : (array of axes)
+        """
         import matplotlib.pyplot as plt
         from scipy.interpolate import griddata
         if outputs is None:
@@ -715,6 +722,16 @@ class NI_Backend(object):
         return fig, axarr
 
     def make_combiner_graph(self):
+        """
+            Creates a directional graph of the beam-combiner and
+        its interfaces. This graph uses the IOTAGS to label the
+        inputs and outputs of the combiner.
+
+        Requires the optional *graphviz* library.
+
+        Returns:
+            mydot  :  a graphviz object
+        """
         try :
             import graphviz
             from graphviz import Digraph
@@ -754,9 +771,12 @@ class NI_Backend(object):
         """
         Create a scatter plot of the recorded frames.
 
-        Arguments:
+        Args:
             outindex: (int) The index of output to plot
-            diffout : (bool) The 
+            diffout : (bool) Whether to use the differential outputs
+            cmap    : (str) Refers to a colormap name in matplotlib
+                        defaults to coolwarm if ``diffout`` and to viridis
+                        otherwise
 
         """
         import matplotlib.pyplot as plt
@@ -795,11 +815,23 @@ class NI_Backend(object):
         
             
 def col_row_numbers(n, col_ceiling=4):
+    """
+        Convenience function to decide the
+    numer of rows and columns of a table for n items
+
+    Args:
+        n           :  (int) number of items
+        col_ceiling : (int)(4) The maximum number of columns acceptable
+
+    Returns:
+        nrows       : (int)
+        ncols       : (int)
+    """
     ncols = int(np.sqrt(n))
     if ncols >col_ceiling:
         ncols=col_ceiling
     nrows = int(np.ceil(n/ncols))
-    return nrows, ncols        
+    return nrows, ncols
 
         
         
