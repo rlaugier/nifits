@@ -295,6 +295,8 @@ if file_in is not None:
                                         for i in range(mycatm.shape[1])]
         else:
             mylabels = [f"Out {i}" for i in range(mycatm.shape[1])]
+        for i in range(10):
+            mylabels.append(None)
 
         st.write("## Assuming no input modulation")
         fig3, axs, matrix = plot_chromatic_matrix(mycatm,
