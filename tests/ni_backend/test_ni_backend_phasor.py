@@ -23,7 +23,7 @@ class TestNI_BackendPhasor(BaseTestCase):
         self.assertEqual(phasor.dtype, complex)
         self.assertEqual(phasor.shape, (100, 5, 2))
 
-    def test_xy2phasor_moving_function(self):
+    def test_xy2phasor_moving(self):
         # Call the method
         self.backend.create_fov_function_all()
 
@@ -35,7 +35,7 @@ class TestNI_BackendPhasor(BaseTestCase):
         self.assertEqual(phasor_moving.dtype, complex)
         self.assertEqual(phasor_moving.shape, (100, 100, 5, 1))
 
-    def test_get_modulation_phasor_valid_data(self):
+    def test_get_modulation_phasor(self):
         # Call the method
         result = self.backend.get_modulation_phasor()
 
@@ -44,3 +44,14 @@ class TestNI_BackendPhasor(BaseTestCase):
 
         # Assertions
         np.testing.assert_array_equal(result, expected)
+
+    def test_geometric_phasor_with_modulation(self):
+        alpha = np.ones((2))
+        beta = np.ones((2))
+
+        # Call the method with include_mod=True
+        result = self.backend.geometric_phasor(alpha, beta, include_mod=True)
+
+        # Assertions
+        self.assertEqual(result.dtype, complex)
+        self.assertEqual(result.shape, (100, 5, 3, 2))
