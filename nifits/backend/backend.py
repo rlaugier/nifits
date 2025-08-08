@@ -466,7 +466,7 @@ class NI_Backend(object):
         col_area = md.array(self.nifits.ni_mod.arrcol)
         return mods*md.sqrt(col_area)[:,None,:]
 
-    def geometric_phasor(self, alpha, beta, include_mod=True,
+    def geometric_phasor(self, alpha, beta, include_mod=False,
                             md=np):
         """
         Returns the complex phasor corresponding to the locations
@@ -476,7 +476,7 @@ class NI_Backend(object):
             alpha         : The coordinate matched to X in the array geometry
             beta          : The coordinate matched to Y in the array geometry
             anarray       : The array geometry (n_input, 2)
-            include_mod   : Include the modulation phasor
+            include_mod   : (False) Include the modulation phasor
         
         Returns:
             A vector of complex phasors
@@ -487,15 +487,16 @@ class NI_Backend(object):
         a = md.array((alpha, beta), dtype=md.float64)
         # print(xy_array.shape)
         # print(a.shape)
-        # phi = k[:,None,None,None] * md.array([anxy_array[:,:].dot(a[:,:]) for anxy_array in xy_array])
-        phi = k[:,None,None,None] * md.einsum("t a x, x m -> t a m", xy_array[:,:,:], a[:,:])
+        # phi = k[:,None,None,None] * md.array([anxy_array[:,:].dot(a[:,:]) for anxy_array in xy_array
+        #                                     "frame beam x, x mpoint -> frame beam mpoint" 
+        phi = k[None,:,None,None] * md.einsum("f b x, x m -> f b m", xy_array[:,:,:], a[:,:])[:,None,:,:]
         # print(a.shape)
         b = md.exp(1j*phi)
         if include_mod:
-            mods = self.get_modulation_phasor(md=md)
-            b *= mods[:,:,None]
+            mods = self.get_modulation_phasor(md=md)[:,:,:,None]
+            b *= mods
         # print(b.shape)
-        return b.transpose((1,0,2,3))
+        return b
         
     def get_Is(self, xs, md=np):
         """
@@ -567,7 +568,7 @@ class NI_Backend(object):
             return self.downsample(Is)
 
 
-    def moving_geometric_phasor(self, alphas, betas, include_mod=True,
+    def moving_geometric_phasor(self, alphas, betas, include_mod=False,
                             md=np):
         """
         Returns the complex phasor corresponding to the locations
@@ -578,7 +579,7 @@ class NI_Backend(object):
         * ``alpha``         : (n_frames, n_points) The coordinate matched to X in the array geometry
         * ``beta``          : (n_frames, n_points) The coordinate matched to Y in the array geometry
         * ``anarray``       : The array geometry (n_input, 2)
-        * ``include_mod``   : Include the modulation phasor
+        * ``include_mod``   : (False) Include the modulation phasor
         
         **Returns** : A vector of complex phasors
 
@@ -587,12 +588,13 @@ class NI_Backend(object):
         lambs = md.array(self.nifits.oi_wavelength.lambs)
         k = 2*md.pi/lambs
         a = md.array((alphas, betas), dtype=md.float64)
-        phi = k[:,None,None,None] * md.einsum("t a x, x t m -> t a m", xy_array[:,:,:], a[:,:,:])
+        #                                     "frame beam x, x frame mpoint -> frame beam mpoint" 
+        phi = k[None,:,None,None] * md.einsum("f b x, x f m -> f b m", xy_array[:,:,:], a[:,:])[:,None,:,:]
         b = md.exp(1j*phi)
         if include_mod:
-            mods = self.get_modulation_phasor(md=md)
-            b *= mods[:,:,None]
-        return b.transpose((1,0,2,3))
+            mods = self.get_modulation_phasor(md=md)[:,:,:,None]
+            b *= mods
+        return b
 
     def get_moving_outs(self, alphas, betas,
                         kernels=False,
