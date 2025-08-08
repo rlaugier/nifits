@@ -65,6 +65,8 @@ The following description details the extensions used for NIFITS. Until the offc
 
 ### Description of the main extensions
 
+A description of the files can be found in the [NIFITS cheatsheet](documentation/NIFITS_cheatsheet.pdf).
+
 *Table 1: Summary of the NIFITS extensions*
 
 |  Extension  |  Required   |  Content |
