@@ -1,66 +1,48 @@
 import unittest
-from unittest.mock import MagicMock
+from copy import copy
 
 from nifits.backend.backend import NI_Backend
 from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
+from tests.base_test_case import BaseTestCase
 
 
-class TestNI_BackendInstrument(unittest.TestCase):
+class TestNI_BackendInstrument(BaseTestCase):
     def setUp(self):
+        super().setUp()
         self.backend = NI_Backend()
 
     def test_add_instrument_definition_when_nifits_is_none(self):
-        mock_nifits = MagicMock()
-        self.backend.add_instrument_definition(nifits_instrument=mock_nifits)
-        self.assertEqual(self.backend.nifits, mock_nifits)
+        self.backend.add_instrument_definition(nifits_instrument=self.nifits)
+        self.assertEqual(self.backend.nifits, self.nifits)
 
     def test_add_instrument_definition_with_force_true(self):
-        mock_existing_nifits = MagicMock()
-        mock_new_nifits = MagicMock()
-        self.backend.nifits = mock_existing_nifits
+        new_nifits = copy(self.nifits)
+        self.backend.nifits = self.nifits
 
-        # Simulate extensions in the new nifits object
-        for ext in NIFITS_EXTENSIONS[STATIC_EXTENSIONS]:
-            setattr(mock_existing_nifits, ext.lower(), MagicMock())
-            setattr(mock_new_nifits, ext.lower(), MagicMock())
-
-        self.backend.add_instrument_definition(nifits_instrument=mock_new_nifits, force=True)
+        self.backend.add_instrument_definition(nifits_instrument=new_nifits, force=True)
 
         for ext in NIFITS_EXTENSIONS[STATIC_EXTENSIONS]:
-            self.assertEqual(getattr(self.backend.nifits, ext.lower()), getattr(mock_new_nifits, ext.lower()))
+            self.assertEqual(getattr(self.backend.nifits, ext.lower()), getattr(new_nifits, ext.lower()))
 
     def test_add_instrument_definition_with_force_false(self):
-        mock_existing_nifits = MagicMock()
-        mock_new_nifits = MagicMock()
-        self.backend.nifits = mock_existing_nifits
+        new_nifits = copy(self.nifits)
+        self.backend.nifits = self.nifits
 
-        # Simulate extensions in both existing and new nifits objects
-        for ext in NIFITS_EXTENSIONS[STATIC_EXTENSIONS]:
-            setattr(mock_existing_nifits, ext.lower(), MagicMock())
-            setattr(mock_new_nifits, ext.lower(), MagicMock())
-
-        self.backend.add_instrument_definition(nifits_instrument=mock_new_nifits, force=False)
+        self.backend.add_instrument_definition(nifits_instrument=new_nifits, force=False)
 
         for ext in NIFITS_EXTENSIONS[STATIC_EXTENSIONS]:
-            self.assertEqual(getattr(self.backend.nifits, ext.lower()), getattr(mock_existing_nifits, ext.lower()))
+            self.assertEqual(getattr(self.backend.nifits, ext.lower()), getattr(self.nifits, ext.lower()))
 
     def test_add_instrument_definition_with_new_attribute(self):
-        mock_existing_nifits = MagicMock()
-        mock_new_nifits = MagicMock()
-        self.backend.nifits = mock_existing_nifits
+        new_nifits = copy(self.nifits)
+        self.backend.nifits = self.nifits
         missing_extension = NIFITS_EXTENSIONS[STATIC_EXTENSIONS][0]
 
-        # Simulate some extensions missing in the new nifits object
-        for ext in NIFITS_EXTENSIONS[STATIC_EXTENSIONS]:
-            if ext.lower() != missing_extension:
-                setattr(mock_new_nifits, ext.lower(), MagicMock())
-            setattr(mock_existing_nifits, ext.lower(), MagicMock())
-
-        self.backend.add_instrument_definition(nifits_instrument=mock_new_nifits, force=False)
+        self.backend.add_instrument_definition(nifits_instrument=new_nifits, force=False)
 
         for ext in NIFITS_EXTENSIONS[STATIC_EXTENSIONS]:
             if ext.lower() != missing_extension:
-                self.assertEqual(getattr(self.backend.nifits, ext.lower()), getattr(mock_existing_nifits, ext.lower()))
+                self.assertEqual(getattr(self.backend.nifits, ext.lower()), getattr(self.nifits, ext.lower()))
             else:
                 self.assertFalse(hasattr(self.backend.nifits, ext.lower()))
 
