@@ -909,6 +909,15 @@ def create_basic_fov_data(D, offset, lamb, n):
     """
     r_0 = (lamb/D)*u.rad.to(u.mas)
     def xy2phasor(x,y, offset):
+        """
+            Returns the complex phasor corresponding to a point in the FOV
+
+        Args:
+            ``x`` : ``ArrayLike`` [rad] Position in the FoV along the alpha direction
+            ``y`` : ``ArrayLike`` [rad] Position in the FoV along the delta direction
+            ``offset`` : ``ArrayLike`` [rad] Chromatic offset of the injection function
+                        shape: (``n_{wl}``, ``n_{points}``).
+        """
         r = np.hypot(x[None,:]-offset[:,0], y[None,:]-offset[:,1])
         phasor = np.exp(-(r/r_0)**2)
         return phasor.astype(complex)

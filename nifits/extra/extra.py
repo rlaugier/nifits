@@ -148,9 +148,11 @@ class Post(be.NI_Backend):
         """
         A decorator methods that gives applies statistical whitening
         to the output of the function. The whitening relies on 
-        `self.W` which is computed as by `create_whitening_matrix`.
+        ``self.W`` which is computed as by ``create_whitening_matrix``.
+
         Args:
             func: The function to decorate.
+
         Returns:
             inner: The decorated function
 
@@ -167,8 +169,11 @@ class Post(be.NI_Backend):
     def add_blackbody(self, temperature):
         """
             Initializes the blackbody for a given temperature
+
         Args:
             temperature: units.Quantity
+
+        The blackbody ``BB`` object is stored in ``self.bb``.
         """
         self.bb = BB(temperature)
 
@@ -200,9 +205,11 @@ class Post(be.NI_Backend):
 
     def get_blackbody_native(self, ):
         """
+        
         Returns:
             blackbody_spectrum: in units consistent with the native
-                units of the file $[a.sr^{-1}.m^{-2}]$ (where [a] is typically [ph/s]).
+                units of the file $[a.sr^{-1}.m^{-2}]$ (where [a] is the
+        flux unit used in the file, typically [ph/s]).
         """
         # Typically given there in erg/Hz/s/sr/cm^2
         myspectral_density = self.bb(self.nifits.oi_wavelength.lambs * units.m)
@@ -267,6 +274,24 @@ class Post(be.NI_Backend):
                     whiten=True,
                     temperature=None):
         """
+            Computes a detection probability of a point-source at a given
+        position based on the energy detector defined in Ceau et al. 2019.
+        This is a simple test of deviation from the expected distribution,
+        entirely agnostic to the family of signal of interest. The spectrum
+        of the source is a blackbody spectrum of fixed temperature.
+
+        Args: 
+            alpha         : [rad] The coordinate matched to X in the array geometry
+            beta          : [rad] The coordinate matched to Y in the array geometry
+            solid_angle   : [sr] Solid angle of the source
+            temperature   : [K] The temperature of the blackbody
+            whiten        : Bool (True) Whether to use the whitening transform
+            kernels       : Bool (True) Whether to use the K matrix to work in differential outputs
+            pfa           : float The false-alarm rate (p-value) to consider
+
+        Returns:
+            pdet_pfa      : An array of the detection probability for all points.
+        
         pfa:
         * 1 sigma: 0.32
         * 2 sigma: 0.046
@@ -291,6 +316,7 @@ class Post(be.NI_Backend):
                     distance=None, radius_unit=units.Rjup,
                     md=np):
         """
+        
         .. code-block:: python
 
             from scipy.stats import ncx2
@@ -363,15 +389,21 @@ class Post(be.NI_Backend):
                     temperature=None):
         """
         Untested:
-        
-        Computes the Pdet of the Tnp for a blackbody detection
 
-        Arguments:
-            alphas : Relative position ra [rad]
-            betas : Ralative position dec [rad]
-            solid_anle : []
-            whiten : (bool)
-            temperature : [K]
+            Computes a detection probability of a point-source at a given
+        position based on the energy detector defined in Ceau et al. 2019.
+        This is a simple test of deviation from the expected distribution,
+        entirely agnostic to the family of signal of interest. The spectrum
+        of the source is a blackbody spectrum of fixed temperature.
+
+        Args: 
+            alpha         : [rad] The coordinate matched to X in the array geometry
+            beta          : [rad] The coordinate matched to Y in the array geometry
+            solid_angle   : [sr] Solid angle of the source
+            temperature   : [K] The temperature of the blackbody
+            whiten        : Bool (True) Whether to use the whitening transform
+            kernels       : Bool (True) Whether to use the K matrix to work in differential outputs
+            pfa           : float The false-alarm rate (p-value) to consider
         
         pfa:
         * 1 sigma: 0.32
@@ -458,18 +490,45 @@ from astropy.modeling.models import BlackBody as BB
 import astropy.constants as cst
 
 def e2ph(energy, wl):
+    """
+        Utility conversion from energy to photons:
+
+    Args:
+        energy   : Carried energy [J]
+        wl       : Wavelength [m]
+
+    Returns:
+        nphot    : number of photons
+    """
     nu = cst.c / (wl * units.m)
     ephot = cst.h * nu
     nphot = energy/ephot
     return nphot.to(nphot.unit.to_system(units.si)[0])
 
 def ph2e(nphot, wl):
+    """
+        Utility conversion from photons to energy  (SI)
+    Args:
+        nphot   : A number of photons
+        wl      : Wavelength [m]
+    Returns:
+        Energy  : Converted to SI units
+    """
     nu = cst.c / (wl * units.m)
     ephot = cst.h * nu
     energy = nphot * ephot
     return energy.to(energy.unit.to_system(units.si)[0])
 
 def whitened_kiout(self):
+    """
+        The function that is imported a method to produce a 
+    statistical whitening of observation. It is added to the
+    object by `create_whitening_matrix`
+
+    Returns:
+        wout_full  : [ArrayLike] The resulting outputs with shape
+                    (nframes, )
+    """
     data = self.data_table["value"].data
     full_shape = data.shape
     flat_full_shape = (full_shape[0], full_shape[1]*full_shape[2])
