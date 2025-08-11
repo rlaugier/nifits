@@ -4,7 +4,7 @@ from nifits.backend import NI_Backend
 from tests.base_test_case import BaseTestCase
 
 
-class TestNI_BackendIntensity(BaseTestCase):
+class TestNI_BackendOutput(BaseTestCase):
 
     def setUp(self):
         super().setUp()
