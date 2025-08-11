@@ -1,9 +1,9 @@
+from tests.base_ni_backend_test_case import BaseNIFITSTestCase
+
 from nifits.backend import col_row_numbers
 
-from tests.base_ni_backend_test_case import BaseNIBackendTestCase
 
-
-class TestBackend(BaseNIBackendTestCase):
+class TestBackend(BaseNIFITSTestCase):
 
     def test_small_number_of_items(self):
         nrows, ncols = col_row_numbers(6)

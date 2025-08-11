@@ -1,10 +1,10 @@
 import numpy as np
 
 from nifits.backend import NI_Backend
-from tests.base_ni_backend_test_case import BaseNIBackendTestCase
+from tests.base_nifits_test_case import BaseNIFITSTestCase
 
 
-class TestNIBackendPhasor(BaseNIBackendTestCase):
+class TestNIFITSPhasor(BaseNIFITSTestCase):
 
     def setUp(self):
         super().setUp()

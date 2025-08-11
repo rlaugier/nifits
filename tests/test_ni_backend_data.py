@@ -5,10 +5,10 @@ import numpy as np
 
 from nifits.backend.backend import NI_Backend
 from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
-from tests.base_ni_backend_test_case import BaseNIBackendTestCase
+from tests.base_nifits_test_case import BaseNIFITSTestCase
 
 
-class TestNIBackendData(BaseNIBackendTestCase):
+class TestNIFITSData(BaseNIFITSTestCase):
     def setUp(self):
         super().setUp()
         self.backend = NI_Backend()
