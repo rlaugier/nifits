@@ -11,11 +11,8 @@ class TestNI_BackendPhasor(BaseTestCase):
         self.backend = NI_Backend()
         self.backend.nifits = self.nifits
 
-    def test_xy2phasor(self):
-        # Call the method
+    def test_xy2phasor_valid_input(self):
         self.backend.create_fov_function_all()
-
-        # Test xy2phasor with sample inputs
         x = np.array([0.1, 0.2])
         y = np.array([0.3, 0.4])
 
@@ -23,11 +20,8 @@ class TestNI_BackendPhasor(BaseTestCase):
         self.assertEqual(phasor.dtype, complex)
         self.assertEqual(phasor.shape, (100, 5, 2))
 
-    def test_xy2phasor_moving(self):
-        # Call the method
+    def test_xy2phasor_moving_valid_input(self):
         self.backend.create_fov_function_all()
-
-        # Test xy2phasor_moving with sample inputs
         x = np.ones((100, 5, 1))
         y = np.ones((100, 5, 1))
 
@@ -35,23 +29,39 @@ class TestNI_BackendPhasor(BaseTestCase):
         self.assertEqual(phasor_moving.dtype, complex)
         self.assertEqual(phasor_moving.shape, (100, 100, 5, 1))
 
-    def test_get_modulation_phasor(self):
-        # Call the method
+    def test_get_modulation_phasor_valid_input(self):
         result = self.backend.get_modulation_phasor()
 
-        # Expected result
         expected = 2.658680776358274 + 0j * np.zeros((100, 5, 3), dtype=complex)
-
-        # Assertions
         np.testing.assert_array_equal(result, expected)
 
     def test_geometric_phasor_with_modulation(self):
         alpha = np.ones((2))
         beta = np.ones((2))
 
-        # Call the method with include_mod=True
         result = self.backend.geometric_phasor(alpha, beta, include_mod=True)
+        self.assertEqual(result.dtype, complex)
+        self.assertEqual(result.shape, (100, 5, 3, 2))
 
-        # Assertions
+    def test_geometric_phasor_without_modulation(self):
+        alpha = np.ones((2))
+        beta = np.ones((2))
+
+        result = self.backend.geometric_phasor(alpha, beta, include_mod=False)
+        self.assertEqual(result.dtype, complex)
+        self.assertEqual(result.shape, (100, 5, 3, 2))
+
+    def test_moving_geometric_phasor_with_modulation(self):
+        alpha = np.ones((100, 2))
+        beta = np.ones((100, 2))
+
+        result = self.backend.moving_geometric_phasor(alpha, beta, include_mod=True)
+        self.assertEqual(result.shape, (100, 5, 3, 2))
+
+    def test_moving_geometric_phasor_without_modulation(self):
+        alpha = np.ones((100, 2))
+        beta = np.ones((100, 2))
+
+        result = self.backend.moving_geometric_phasor(alpha, beta, include_mod=True)
         self.assertEqual(result.dtype, complex)
         self.assertEqual(result.shape, (100, 5, 3, 2))
