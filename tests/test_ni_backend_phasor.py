@@ -52,6 +52,7 @@ class TestNI_BackendPhasor(BaseTestCase):
         self.assertEqual(result.shape, (100, 5, 3, 2))
 
     def test_moving_geometric_phasor_with_modulation(self):
+        self.backend.create_fov_function_all()
         alpha = np.ones((100, 2))
         beta = np.ones((100, 2))
 
@@ -59,6 +60,7 @@ class TestNI_BackendPhasor(BaseTestCase):
         self.assertEqual(result.shape, (100, 5, 3, 2))
 
     def test_moving_geometric_phasor_without_modulation(self):
+        self.backend.create_fov_function_all()
         alpha = np.ones((100, 2))
         beta = np.ones((100, 2))
 

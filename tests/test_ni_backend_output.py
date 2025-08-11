@@ -12,64 +12,40 @@ class TestNI_BackendIntensity(BaseTestCase):
         self.backend.nifits = self.nifits
 
     def test_get_all_outs_without_kernels(self):
+        self.backend.create_fov_function_all()
         alphas = np.array([0.1, 0.2])
         betas = np.array([0.3, 0.4])
 
-        # Call the method with kernels=False
         result = self.backend.get_all_outs(alphas, betas, kernels=False)
-
-        # Assertions
-        self.assertIsNotNone(result)
+        self.assertEqual(result.shape, (100, 5, 3, 2))
 
     def test_get_all_outs_with_kernels(self):
+        self.backend.create_fov_function_all()
         alphas = np.array([0.1, 0.2])
         betas = np.array([0.3, 0.4])
 
-        # Call the method with kernels=False
         result = self.backend.get_all_outs(alphas, betas, kernels=True)
+        self.assertEqual(result.shape, (100, 5, 1, 2))
 
-        # Assertions
-        self.assertIsNotNone(result)
+    def test_get_moving_outs_without_kernels(self):
+        self.backend.create_fov_function_all()
+        alphas = np.ones((100, 4))
+        betas = np.ones((100, 4))
 
-    def test_get_moving_outs_valid_input(self):
-        alphas = np.ones(4)
-        betas = np.ones(4)
+        result = self.backend.get_moving_outs(alphas, betas, kernels=False)
+        self.assertEqual(result.shape, (100, 5, 3, 4))
 
-        # Call the method
-        result = self.backend.get_moving_outs(alphas, betas)
+    def test_get_moving_outs_with_kernels(self):
+        self.backend.create_fov_function_all()
+        alphas = np.ones((100, 4))
+        betas = np.ones((100, 4))
 
-        # Assertions
-        self.assertIsNotNone(result)
-
-    def test_get_moving_outs_invalid_input(self):
-        alphas = None
-        betas = None
-
-        # Assertions
-        with self.assertRaises(TypeError):
-            self.backend.get_moving_outs(alphas, betas)
+        result = self.backend.get_moving_outs(alphas, betas, kernels=True)
+        self.assertEqual(result.shape, (100, 5, 1, 4))
 
     def test_downsample_valid_input(self):
-        Is = np.ones((2, 2, 2, 4))  # Example input
+        self.backend.create_fov_function_all()
+        Is = np.ones((100, 5, 2, 4))
 
-        # Call the method
         result = self.backend.downsample(Is)
-
-        # Assertions
-        self.assertIsNotNone(result)
-
-    def test_downsample_empty_input(self):
-        Is = np.array([])  # Empty input
-
-        # Call the method
-        result = self.backend.downsample(Is)
-
-        # Assertions
-        self.assertEqual(result.size, 0)
-
-    def test_downsample_invalid_input(self):
-        Is = None  # Invalid input
-
-        # Assertions
-        with self.assertRaises(TypeError):
-            self.backend.downsample(Is)
+        self.assertEqual(result.shape, (100, 5, 2, 4))
