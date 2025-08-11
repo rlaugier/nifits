@@ -545,10 +545,6 @@ class NI_Backend(object):
         xs = self.geometric_phasor(alphas, betas, include_mod=False, md=md)
         # print("xs", xs)
 
-        # Call this to ensure xy2phasor exists
-        # TODO: check if this is suitable here
-        self.create_fov_function_all(md=md)
-
         # The phasor from the spatial filtering:
         x_inj = self.nifits.ni_fov.xy2phasor(alphas, betas, md=md)
         # print("x_inj", x_inj)
@@ -620,10 +616,6 @@ class NI_Backend(object):
         xs = self.moving_geometric_phasor(alphas, betas, include_mod=False)
         # print("xs", xs)
 
-        # Call this to ensure xy2phasor exists
-        # TODO: check if this is suitable here
-        self.create_fov_function_all(md=md)
-        
         # The phasor from the spatial filtering:
         x_inj = self.nifits.ni_fov.xy2phasor_moving(alphas, betas)
         # print("x_inj", x_inj)
