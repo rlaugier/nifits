@@ -1,12 +1,13 @@
 import unittest
 from copy import copy
 
-from nifits.backend.backend import NI_Backend
-from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
 from tests.base_test_case import BaseTestCase
 
+from nifits.backend.backend import NI_Backend
+from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
 
-class TestNI_BackendInstrument(BaseTestCase):
+
+class TestNIBackendInstrument(BaseTestCase):
     def setUp(self):
         super().setUp()
         self.backend = NI_Backend()

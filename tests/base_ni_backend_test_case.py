@@ -9,7 +9,7 @@ from erfa import ErfaWarning
 import nifits.io.oifits as io
 
 
-class BaseTestCase(TestCase):
+class BaseNIBackendTestCase(TestCase):
     """
     Base class for all test cases.
     Provides common setup and teardown methods.

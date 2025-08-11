@@ -1,10 +1,10 @@
 import numpy as np
 
 from nifits.backend import NI_Backend
-from tests.base_test_case import BaseTestCase
+from tests.base_ni_backend_test_case import BaseNIBackendTestCase
 
 
-class TestNI_BackendIntensity(BaseTestCase):
+class TestNIBackendIntensity(BaseNIBackendTestCase):
 
     def setUp(self):
         super().setUp()
