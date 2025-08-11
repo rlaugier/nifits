@@ -131,7 +131,7 @@ if file_in is not None:
                 end_time = time()
                 st.session_state["time_maps"] = end_time - start_time
                 with st.sidebar:
-                    st.write(f"Computed in {st.session_state["time_maps"]:.2f} s")
+                    st.write(f"Computed in {st.session_state['time_maps']:.2f} s")
                     st.write(f"Output shape is : {z.shape}")
 
             wls = mynifits.oi_wavelength.lambs
