@@ -26,24 +26,35 @@ class BaseNIFITSTestCase(TestCase):
         mat_3T_txt = """
         Matrix([
         [sqrt(3)/3,                sqrt(3)/3,                sqrt(3)/3],
+        [sqrt(3)/3,                sqrt(3)/3,                sqrt(3)/3],
         [sqrt(3)/3,  sqrt(3)*exp(2*I*pi/3)/3, sqrt(3)*exp(-2*I*pi/3)/3],
         [sqrt(3)/3, sqrt(3)*exp(-2*I*pi/3)/3,  sqrt(3)*exp(2*I*pi/3)/3]])
         """
         combiner_s = sp.sympify(mat_3T_txt)
+
+        self.n_in = combiner_s.shape[1]
+        self.n_out = combiner_s.shape[0]
+        
+        combiner_s = sp.Matrix([combiner_s[0] / 2,
+                                combiner_s[0] / 2,
+                                combiner_s[1],
+                                combiner_s[2]])
         combiner = np.array(sp.N(combiner_s, ), dtype=np.complex128)
 
-        kmat = np.array([[0.0, 1.0, -1.0], ])
+        self.n_diff_out = 1
+
+        kmat = np.array([[0.0, 0.0, 1.0, -1.0], ])
 
         include_iotags = True
         include_downsampling = True
         if include_iotags:
             from astropy.table import Column
 
-            outbright = data = np.array([True, False, False])[None, :]
-            outphot = data = np.array([False, False, False])[None, :]
-            outdark = data = np.array([False, True, True])[None, :]
-            inpol = data = np.array(["s", "s", "s"])[None, :]
-            outpol = data = np.array(["s", "s", "s"])[None, :]
+            outbright = data = np.array([True, True, False, False])[None, :]
+            outphot = data = np.array([False, False, False, False])[None, :]
+            outdark = data = np.array([False, False, True, True])[None, :]
+            inpol = data = np.array(["s", "s", "s", "s"])[None, :]
+            outpol = data = np.array(["s", "s", "s", "s"])[None, :]
 
         # collector positions
         baseline = 15  # in meter
@@ -51,8 +62,8 @@ class BaseNIFITSTestCase(TestCase):
         telescope_diam = 3.0
 
         # rotation angles over observation
-        n_sample_time = 100
-        rotation_angle = np.linspace(0., 2 * np.pi, n_sample_time)  # in rad
+        self.n_time = 100
+        rotation_angle = np.linspace(0., 2 * np.pi, self.n_time)  # in rad
 
         # collector_positions_init = np.array(((-baseline/2, baseline/2),
         #                                      (0, 0)))
@@ -66,8 +77,8 @@ class BaseNIFITSTestCase(TestCase):
         collector_position = np.dot(np.swapaxes(rotation_matrix, -1, 0), collector_positions_init)
 
         # observing wavelengths
-        n_wl_bin = 5
-        wl_bins = np.linspace(4.0e-6, 18.0e-6, n_wl_bin)  # in meter
+        self.n_wl_bin = 5
+        wl_bins = np.linspace(4.0e-6, 18.0e-6, self.n_wl_bin)  # in meter
 
         # collector area
         scaled_area = 1  # in meter^2
@@ -76,7 +87,7 @@ class BaseNIFITSTestCase(TestCase):
         # np.random.seed(10)
         # np.random.normal(loc=(), size=wl_bin.shape)
         cov = 1e1 * np.eye(kmat.shape[0] * wl_bins.shape[0])
-        covs = np.array([cov for i in range(n_sample_time)])
+        covs = np.array([cov for i in range(self.n_time)])
 
         ####################################################################
         collector_positions_init.T
@@ -98,7 +109,7 @@ class BaseNIFITSTestCase(TestCase):
         my_FOV_header["NIFITS FOV_TELDIAM"] = telescope_diam
         my_FOV_header["NIFITS FOV_TELDIAM_UNIT"] = "m"
         ni_fov = io.NI_FOV.simple_from_header(header=my_FOV_header, lamb=wl_bins,
-                                              n=n_sample_time)
+                                              n=self.n_time)
 
         oi_target = io.OI_TARGET.from_scratch()
         oi_target.add_target(target='Test Target',
@@ -112,19 +123,19 @@ class BaseNIFITSTestCase(TestCase):
 
         n_telescopes = combiner.shape[1]
         total_obs_time = 10 * 3600  # s
-        times_relative = np.linspace(0, total_obs_time, n_sample_time)
+        times_relative = np.linspace(0, total_obs_time, self.n_time)
         warnings.simplefilter('ignore', ErfaWarning)  # to suppress warnings from astropy.time in the next line
         dateobs = Time("2035-06-23T00:00:00.000") + times_relative * u.s
         mjds = dateobs.to_value("mjd")
         seconds = (dateobs - dateobs[0]).to_value("s")
         target_id = np.zeros_like(times_relative)
-        app_index = np.arange(n_telescopes)[None, :] * np.ones(n_sample_time)[:, None]
-        target_ids = 0 * np.ones(n_sample_time)
+        app_index = np.arange(n_telescopes)[None, :] * np.ones(self.n_time)[:, None]
+        target_ids = 0 * np.ones(self.n_time)
         int_times = np.gradient(seconds)
-        mod_phas = np.ones((n_sample_time, n_wl_bin, n_telescopes), dtype=complex)
+        mod_phas = np.ones((self.n_time, self.n_wl_bin, n_telescopes), dtype=complex)
         appxy = collector_position.transpose((0, 2, 1))
-        arrcol = np.ones((n_sample_time, n_telescopes)) * np.pi * telescope_diam ** 2 / 4
-        fov_index = np.ones(n_sample_time)
+        arrcol = np.ones((self.n_time, n_telescopes)) * np.pi * telescope_diam ** 2 / 4
+        fov_index = np.ones(self.n_time)
 
         app_index = Column(data=app_index, name="APP_INDEX",
                            unit=None, dtype=int)

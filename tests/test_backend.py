@@ -1,6 +1,5 @@
-from tests.base_ni_backend_test_case import BaseNIFITSTestCase
-
 from nifits.backend import col_row_numbers
+from tests.base_nifits_test_case import BaseNIFITSTestCase
 
 
 class TestBackend(BaseNIFITSTestCase):
