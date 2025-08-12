@@ -228,7 +228,9 @@ class Post(be.NI_Backend):
                         kernels=True, whiten=True,
                             to_si=True):
         """
-            Obtain the output spectra of a blackbody at the given blackbody temperature
+            Obtain the output spectra of a blackbody at the given blackbody
+        temperature.
+
         Args:
             alphas: ArrayLike: Relative position in rad
             betas:  ArrayLike: Relative position in rad
@@ -271,7 +273,6 @@ class Post(be.NI_Backend):
     def get_pdet_te(self, alphas, betas,
                     solid_angle,
                     kernels=True, pfa=0.046,
-                    whiten=True,
                     temperature=None):
         """
             Computes a detection probability of a point-source at a given
@@ -285,7 +286,6 @@ class Post(be.NI_Backend):
             beta          : [rad] The coordinate matched to Y in the array geometry
             solid_angle   : [sr] Solid angle of the source
             temperature   : [K] The temperature of the blackbody
-            whiten        : Bool (True) Whether to use the whitening transform
             kernels       : Bool (True) Whether to use the K matrix to work in differential outputs
             pfa           : float The false-alarm rate (p-value) to consider
 
@@ -316,7 +316,40 @@ class Post(be.NI_Backend):
                     distance=None, radius_unit=units.Rjup,
                     md=np):
         """
+            Computes a sensitivity of the observation to point source(s) located
+        at the given coordinates, based on the energy detector test defined in
+        Ceau et al. 2019. This is a simple test of deviation from the expected
+        Gaussian distribution, entirely agnostic to the family of signal of interest.
+        The spectrum of the source is a blackbody spectrum of fixed temperature.
+        The sensitivity is converted to a sphere diameter
+
+        Args: 
+            alpha         : [rad] The coordinate matched to X in the array geometry
+            beta          : [rad] The coordinate matched to Y in the array geometry
+            temperature   : [K] The temperature of the hypothetical source
+            pfa           : (0.046) False alarm rate (p-value) for signficance
+            pdet          : (0.9) Detection probability.
+            distance      : (distance Quantity) Optional. The distance to the system.
+                            If provided, used to translate the solid angle limit to
+                            to a sphere radius limit.
+            radius_unit   : (length Unit) Optional. The unit to express the
+                            radius limit.
+            kernels       : Bool (True) Whether to use the K matrix to work in differential outputs
+            pfa           : float The false-alarm rate (p-value) to consider
+
+        Returns:
+            lim_radius : (astropy.Quantity) An estimate of the sensitivity limit
+                            of the observation. If distance is not providede, limit
+                            is the solid angle of the source seen from the observer.
+                            If a distance is provided, the limit is converted to the
+                            radius of a sphere at this distance
+                        
         
+        pfa:
+        * 1 sigma: 0.32
+        * 2 sigma: 0.046
+        * 3 sigma: 0.0027
+         
         .. code-block:: python
 
             from scipy.stats import ncx2
@@ -348,7 +381,7 @@ class Post(be.NI_Backend):
         xtx = md.einsum("m i, i m -> m", x.T, x)
         lambda0 = 1.0e-3 * self.fullyflatshape
         # The solution lambda is the x^T.x value satisfying Pdet and Pfa
-        sol = leastsq(residual_pdet_Te, lambda0, 
+        sol = leastsq(residual_pdet_Te, lambda0,
                         args=(threshold, self.fullyflatshape, pdet))# AKA lambda
         lamb = sol[0][0]
         # Concatenate the wavelengths
@@ -358,7 +391,8 @@ class Post(be.NI_Backend):
         elif isinstance(distance, units.Quantity):
             dist_converted = distance.to(radius_unit)
             lim_radius = dist_converted*md.sqrt(lim_solid_angle/md.pi)
-            return lim_radius.to(radius_unit, equivalencies=units.equivalencies.dimensionless_angles())
+            return lim_radius.to(radius_unit,
+                                equivalencies=units.equivalencies.dimensionless_angles())
 
 
     def get_tnp(self, x):
@@ -372,7 +406,7 @@ class Post(be.NI_Backend):
             x : Known signature of the signal of interest.
         
         Returns:
-            Te : y.T.dot(x) where y is the whitened signal recorded
+            Tnp : y.T.dot(x) where y is the whitened signal recorded
             and x is the target .
         """
         if hasattr(self.nifits, "ni_kiout"):
@@ -430,7 +464,34 @@ class Post(be.NI_Backend):
                     distance=None, radius_unit=units.Rjup,
                     md=np):
         """
-        Untested
+            Computes a sensitivity of the observation to point source(s) located
+        at the given coordinates, based on the Neyman-Pearson test defined in
+        Ceau et al. 2019. This is a idealized test that represents the
+        theoretical limit if we perfectly know the signature of interest.
+        The spectrum of the source is a blackbody spectrum of fixed temperature.
+        The sensitivity is converted to a sphere diameter.
+
+        Args: 
+            alphas        : [rad] The coordinate matched to X in the array geometry
+            betas         : [rad] The coordinate matched to Y in the array geometry
+            temperature   : [K] The temperature of the hypothetical source
+            pfa           : (0.046) False alarm rate (p-value) for signficance
+            pdet          : (0.9) Detection probability.
+            distance      : (distance Quantity) Optional. The distance to the system.
+                            If provided, used to translate the solid angle limit to
+                            to a sphere radius limit.
+            radius_unit   : (length Unit) Optional. The unit to express the
+                            radius limit. Default : Rjup
+            kernels       : Bool (True) Whether to use the K matrix to work
+                            in differential outputs
+            pfa           : float The false-alarm rate (p-value) to consider
+
+        Returns:
+            lim_radius : (astropy.Quantity) An estimate of the sensitivity limit
+                            of the observation. If distance is not providede, limit
+                            is the solid angle of the source seen from the observer.
+                            If a distance is provided, the limit is converted to the
+                            radius of a sphere at this distance
         
         .. code-block:: python
 
