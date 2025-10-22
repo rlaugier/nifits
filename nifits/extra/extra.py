@@ -42,6 +42,9 @@ from scipy.stats import ncx2 as ncx2
 from scipy.stats import norm as norm
 from scipy.stats import chi2 as chi2
 
+from typing import Union
+
+
 def local_sqrtm(amatrix):
     """
     Arguments:
@@ -542,6 +545,278 @@ class Post(be.NI_Backend):
             dist_converted = distance.to(radius_unit)
             lim_radius = dist_converted*md.sqrt(lim_solid_angle/md.pi)
             return lim_radius.to(radius_unit, equivalencies=units.equivalencies.dimensionless_angles())
+
+BackendLike = Union[be.NI_Backend, Post]
+
+class Converted_BB(object):
+    def __init__(self, temperature, oi_wavelength, solid_angle,
+                    iout_unit=None):
+        self.blackbody = BB(temperature[:,None])
+        self.oi_wavelength = oi_wavelength
+        self.iout_unit = iout_unit
+    def set_temperature(self, temperature):
+        self.blackbody = BB(temperature[:,None])
+    @property
+    def temperature(self):
+        return self.bb.temperature
+
+    def set_temperature(self, temperature):
+        self.bb.temperature = temperature
+
+    def get_blackbody_native(self, ):
+        """
+        
+        Returns:
+            blackbody_spectrum: in units consistent with the native
+                units of the file $[a.sr^{-1}.m^{-2}]$ (where [a] is the
+        flux unit used in the file, typically [ph/s]).
+        """
+        # Typically given there in erg/Hz/s/sr/cm^2
+        myspectral_density = self.blackbody(self.oi_wavelength.lambs[None,:] * units.m)
+        # Photon_energies in J/ph
+        photon_energies = (self.oi_wavelength.lambs*units.m).to(
+                            units.J, equivalencies=units.equivalencies.spectral())\
+                                / units.photon
+        dnus = self.oi_wavelength.dnus * (units.Hz)
+        # print((myspectral_density * dnus / photon_energies).unit)
+        blackbody_spectrum = (myspectral_density * dnus / photon_energies).to(
+                                 self.iout_unit / units.sr / (units.m**2))
+        return blackbody_spectrum
+
+    def converted_blackbody(self):
+        raw_bb = 1/self.iout_unit * self.get_blackbody_native()
+        return  raw_bb.to(raw_bb.unit.to_system(units.si)[0])
+
+from nifits.backend import PointCollection
+from nifits.io.oifits import OI_WAVELENGTH
+
+class BaseSource(PointCollection):
+    def __init__(self, samples: PointCollection,
+                    flux_density: np.ndarray):
+        self.aa = samples.aa
+        self.bb = samples.bb
+        self.ss = flux_density # Units: a/m^2 (where a is the unit of output used)
+
+class FixedSource(PointCollection):
+    def __init__(self, samples: PointCollection,
+                    temperature: units.quantity,
+                    sp_dens: np.ndarray,
+                    solid_angle: units.quantity,
+                    oi_wavelength: OI_WAVELENGTH,
+                    iout_unit: units.Unit,
+                    md=np):
+        self.aa = samples.aa
+        self.bb = samples.bb
+        self.solid_angle = solid_angle
+        self.sp_dens = sp_dens
+        self.ds_bb = Converted_BB(temperature,
+                                oi_wavelength=oi_wavelength,
+                                solid_angle=solid_angle/self.aa.shape[0],
+                                iout_unit=iout_unit)
+    @property
+    def ds_sr(self):
+        return 1/self.aa.shape[0] * self.solid_angle
+    def get_flux_density(self):
+        """
+            Returns the (spatial) flux density in [a/m^2] where
+        a is the unit of flux collected at the outputs (ni_iout.unit)
+
+        returns:
+            spectrum : an array with dimension (n_wl, n_points)
+        """
+        spectrum = self.ds_sr * self.ds_bb.converted_blackbody().T\
+                        * np.ones_like(self.aa)[None,:]
+        return spectrum.to(1/(units.m**2), equivalencies=units.dimensionless_angles())
+    
+    @property
+    def ss(self):
+        # return self.get_spectrum()
+        return self.get_flux_density()
+
+
+    @classmethod
+    def warm_sphere_opaque(cls, distance, radius,
+                    temperature, location, n,
+                    oi_wavelength, iout_unit, md=np):
+        radius_mas = ((radius.to(units.pc)/distance)*units.rad).to(units.mas)
+        solid_angle_mas = np.pi*radius_mas**2
+        pc = PointCollection.from_uniform_disk(radius=radius_mas.value,
+                                                n=n,
+                                                offset=location,
+                                                md=md)
+        sp_dens = 1.0 * md.ones_like(pc.aa)
+        return cls(samples=pc,
+                    temperature=md.array([temperature.value])*temperature.unit,
+                    sp_dens=sp_dens,
+                    solid_angle=solid_angle_mas,
+                    oi_wavelength=oi_wavelength,
+                    iout_unit=iout_unit,
+                    md=md
+                    )
+
+
+class SceneFitter(object):
+    def __init__(self, backend: Post, nuisance, interest, kernels=False):
+        self.backend = backend
+        self.nuisance = nuisance
+        self.interest = interest
+        self.update_function = None
+        self.kernels = kernels
+        if isinstance(self.backend, Post):
+            self.whiten = True
+            if not hasattr(self.backend, "Ws"):
+                self.backend.create_whitening_matrix()
+            self.get_signal = self._get_signal
+                # Not whiten since we will need to multiply by spectrum first
+        else:
+            self.whiten = False
+            self.get_signal = self._get_signal
+        self.injecting = False
+        self.original_iout = None
+        self.original_kiout = None
+        self.update_nuisance()
+
+    def update_nuisance(self):
+        self.nuisance_flux = self.get_total_group(self.nuisance)
+
+    def inject_object(self, asource: BaseSource):
+        self.injecting = True
+        if self.original_iout is None: # only backup if no backup exists
+            self.original_iout = self.backend.nifits.ni_iout
+            if self.backend.nifits.ni_kiout is not None:
+                self.original_kiout = self.backend.nifits.ni_kiout
+        z0 = self.backend.get_all_outs(*asource.coords_rad, kernels=False)
+        extra_flux = z0 * asource.ss[None,:,None,:]
+        self.backend.nifits.ni_iout.iout += extra_flux
+        if self.backend.nifits.ni_kiout is not None:
+            z0 = self.backend.get_all_outs(*asource.coords_rad, kernels=True)
+            extra_flux = z0 * asource.ss[None,:,None,:]
+            self.backend.nifits.ni_kiout.iout += extra_flux
+
+    def clear_injection(self):
+        if self.injecting:
+            self.backend.nifits.ni_iout = self.original_iout
+            if self.backend.nifits.ni_kiout is not None:
+                self.backend.nifits.ni_kiout = self.original_kiout
+        else:
+            pass
+
+    def create_maps(self):
+        for asource in self.interest:
+            asource.z = self.get_signal(*asource.coords_rad, kernels=self.kernels)
+        for asource in self.nuisance:
+            asource.z = self.get_signal(*asource.coords_rad, kernels=self.kernels)
+
+    def get_source_output(self, asource):
+        """
+            Updates the transmission map, and computes and returns the total flux.
+        """
+        asource.z = self.get_signal(*asource.coords_rad, kernels=self.kernels)
+        myflux = asource.z * asource.ss[None,:,None,:]
+        return myflux
+
+    def get_source_output_fast(self, asource):
+        """
+            Computes and returns the total flux without recomputing the transmission map
+        """
+        # We use precomputed map
+        raw_flux = asource.z * asource.ss[None,:,None,:]
+        if self.whiten:
+            myflux = self.backend.whiten_signal(raw_flux)
+        else:
+            myflux = raw_flux
+        return myflux
+
+    def get_total_group(self, sourcebank):
+        """
+            Updates the transmission map and computes and returns
+        the flux of a given source bank
+        """
+        interest_flux = []
+        for asource in sourcebank:
+            interest_flux.append(self.get_source_output(asource))
+        interest_flux = np.array(interest_flux)
+        interest_flux = interest_flux.sum(axis=0)
+        return interest_flux
+    def get_total_group_fast(self, sourcebank):
+        """
+            Computes and returns the flux of a given source bank.
+        The transmission map is not updated.
+        """
+        interest_flux = []
+        for asource in sourcebank:
+            interest_flux.append(self.get_source_output_fast(asource))
+        interest_flux = np.array(interest_flux)
+        interest_flux = interest_flux.sum(axis=0)
+        return interest_flux
+    
+    def get_total_fast(self, dosum=True):
+        self.create_maps()
+        interest_flux = self.get_total_fast(self.interest)
+        if dosum:
+            return interest_flux + self.nuisance_flux
+        else:
+            return interest_flux, self.nuisance_flux
+
+    def get_total_output(self, dosum=True):
+        self.create_maps()
+        interest_flux = self.get_total_group(self.interest)
+        if dosum:
+            return interest_flux + self.nuisance_flux
+        else:
+            return interest_flux, self.nuisance_flux
+
+    def create_star_1p(cls, backend,
+                            distance,
+                            star_rad,
+                            star_temp,
+                            star_nb_pts,
+                            planet_radius,
+                            planet_temp,
+                            planet_pos,
+                            kernel=True):
+        aplanet = FixedSource.warm_sphere_opaquee_opaque(distance=distance,
+                                    radius=planet_radius,
+                                    temperature=planet_temp,
+                                    location=planet_pos, n=1,
+                                    oi_wavelength=backend.nifits.oi_wavelength,
+                                    iout_unit=backend.nifits.ni_iout.unit,
+                                    )
+        astar = FixedSource.warm_sphere_opaque(distance=distance,
+                                    radius=star_rad,
+                                    temperature=star_temp,
+                                    location=np.zeros(2),
+                                    n=star_nb_pts,
+                                    oi_wavelength=backend.nifits.oi_wavelength,
+                                    iout_unit=backend.nifits.ni_iout.unit,
+                                    )
+        myobj = cls(backend=backend, nuisance=[astar,],
+                interest=[aplanet,], kernel=kernel)
+        return myobj
+
+    def update_single_planet(self, params):
+        # refresh planet map
+        pass
+    def update_dual_planet(self, params):
+        # refresh planets map
+        for i, aplanet in enumerate(self.interest):
+            aplanet.ds_bb.blackbody.temperature = params[f"Tp{i}"].value
+            cpform = params[f"rhop{i}"].value*np.exp(1j*params[f"thetap{i}"].value)
+            aplanet.aa[0] = cpform.real
+            aplanet.bb[0] = cpform.imag
+            aplanet.z = self.get_signal(*aplanet.coords_rad, kernels=self.kernels)
+        
+    def update_ring_density(self, params):
+        pass
+    def update_star_rad_disk_density(self, params):
+        pass
+    def _get_signal(self,*args, **kwargs):
+        return self.backend.get_all_outs(*args, **kwargs,)
+    # def _get_whitened_signal(self,*args, **kwargs):
+    #     return self.backend.w_get_all_outs(*args, **kwargs,)
+    def get_residual(self,):
+        pass
+        
 
 
 massq2sr = (units.mas**2).to(units.sr)

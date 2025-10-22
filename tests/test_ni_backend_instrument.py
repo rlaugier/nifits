@@ -3,10 +3,10 @@ from copy import copy
 
 from nifits.backend.backend import NI_Backend
 from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
-from tests.base_test_case import BaseTestCase
+from tests.base_nifits_test_case import BaseNIFITSTestCase
 
 
-class TestNI_BackendInstrument(BaseTestCase):
+class TestNIFITSInstrument(BaseNIFITSTestCase):
     def setUp(self):
         super().setUp()
         self.backend = NI_Backend()
