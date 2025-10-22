@@ -187,7 +187,7 @@ class BaseNIFITSTestCase(TestCase):
             outphotcol = Column(data=outphot,
                                 name="PHOT", unit=None, dtype=bool)
             outdarkcol = Column(data=outdark,
-                                name="DARK", unit=None, dtype=str)
+                                name="DARK", unit=None, dtype=bool)
             inpolcol = Column(data=inpol,
                               name="OUTPOLA", unit=None, dtype=str)
             outpolcol = Column(data=outpol,
