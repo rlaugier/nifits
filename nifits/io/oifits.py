@@ -34,8 +34,8 @@ import numpy.typing
 ArrayLike = np.typing.ArrayLike
 
 
-__version__ = "0.0.7"
-__standard_version__ = "0.5"
+__version__ = "0.0.8"
+__standard_version__ = "0.6"
 
 _mjdzero = datetime.datetime(1858, 11, 17)
 

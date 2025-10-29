@@ -408,7 +408,7 @@ class NI_Backend(object):
         D = (self.nifits.ni_fov.header["NIFITS FOV_TELDIAM"] \
              * units.Unit(self.nifits.ni_fov.header["NIFITS FOV_TELDIAM_UNIT"])) \
             .to(units.m).value
-        r_0 = (1 / 2 * self.nifits.oi_wavelength.lambs / D)  # *units.rad.to(units.mas)
+        r_0 = ( 2 * self.nifits.oi_wavelength.lambs / D)  # *units.rad.to(units.mas)
         offset = md.array(self.nifits.ni_fov.data_table["offsets"])
 
         def xy2phasor(x, y, md=md):
