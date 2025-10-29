@@ -34,8 +34,8 @@ import numpy.typing
 ArrayLike = np.typing.ArrayLike
 
 
-__version__ = "0.0.6"
-__standard_version__ = "0.4"
+__version__ = "0.0.7"
+__standard_version__ = "0.5"
 
 _mjdzero = datetime.datetime(1858, 11, 17)
 
@@ -821,7 +821,7 @@ class NI_MOD(NI_EXTENSION):
        +---------------+----------------------------+------------------+-------------------+
        | Item          | format                     | unit             | comment           |
        +===============+============================+==================+===================+
-       | ``APP_INDEX`` |  ``int``                   | NA               | Indices of        |
+       | ``APP_INDEX`` |  ``n_a`` ``int``           | NA               | Indices of        |
        |               |                            |                  | subaperture       |
        |               |                            |                  | (starts at 0)     |
        +---------------+----------------------------+------------------+-------------------+
@@ -839,7 +839,7 @@ class NI_MOD(NI_EXTENSION):
        |               |                            |                  | modulation for    |
        |               |                            |                  | all collectors    |
        +---------------+----------------------------+------------------+-------------------+
-       | ``APPXY``     | ``n_a,2`` ``float``        | m                | Projected         |
+       | ``APPXY``     | ``n_a, 2`` ``float``       | m                | Projected         |
        |               |                            |                  | location of       |
        |               |                            |                  | subapertures in   |
        |               |                            |                  | the plane         |
@@ -963,38 +963,6 @@ class NI_FOV(NI_EXTENSION):
         return cls(data_table=mytable, header=header)
 
 
-
-
-    def get_fov_function(self, lamb: ArrayLike, n: int):
-        """
-        Returns the function to get the chromatic phasor
-        given by injection for a the index n of the time series
-
-        **This method will move to the backend**
-
-        Args:
-            lamb : The array of wavelength bins [m]
-            n    : The index of the time series to compute for
-        """
-        assert self.header["NIFITS FOV_MODE"] == "diameter_gaussian_radial"
-        D = self.header["NIFITS FOV_TELDIAM"]
-        r_0 = (lamb/D)*u.rad.to(u.mas)
-        offset = self.data_table["offsets"][n]
-        def xy2phasor(alpha, beta):
-            """
-            Returns the phasor for a given position of the field of view
-
-            Args:
-                alpha : Position in RA
-                beta  : Position in Dec
-
-            Returns:
-                The complex phasor
-            """
-            r = np.hypot(alpha[None,:]-offset[:,0], beta[None,:]-offset[:,1])
-            phasor = np.exp(-(r/r_0)**2)
-            return phasor.astype(complex)
-        return xy2phasor
 
     def __info__(self):
         mode = self.header["HIERARCH NIFITS FOV_MODE"] 

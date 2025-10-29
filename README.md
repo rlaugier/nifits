@@ -2,12 +2,9 @@
 
 ## Breaking news:
 
-Standards live and die by their community. In order to get in touch with our community, we have an *ongoing poll*. If you are interested in NIFITS, help us to build a strong, welcoming and prolific community by answering [this poll](https://forms.gle/HVECwQCz8PE6Tvic9).
+Standards live and die by their community. In order to get in touch with our community. The NIFITS Hackathon organized in Summer 2025 was very important to help create a solid and inclusive community by helping you kickstart your own applications. We hope to arganize more similar events soon.
 
-We are looking for a date for our first community hackathon. The event will take the form of two consecutive days of recommended hackathon work, split between two groups to accommodate different timezone groups. The **early group will operate on two consecutive CEST mornings to be compatible with Australian schedules**. The **late group will operate on two consecutive CEST afternoons to be more compatible with the American schedules**.
-
-Each will start with a 30-45 minutes webinar presentation of the standard and its supporting library, and close on the next day with a quick presentation of the accomplishments from each teams (during the last 30 minutes). The goal is to help you kickstart your own application in constructive (virtual) environment with the **live availability of the NIFITS core team**. This will happen on August 11 and 12 , 2025. Email Romain Laugier to register.
-
+This version 0.0.7 and standard 0.5 consolidates the basic test system and makes some simple fixes.
 
 ## The `nifits` package
 
@@ -80,6 +77,7 @@ A description of the files can be found in the [NIFITS cheatsheet](documentation
 |  `NI_KIOUT` | measurement |  Contains post-processed output fluxes. |
 |  `NI_OSAMP` | fixed       |  Identity is assumed if absent, (optional). |
 |  `NI_FOV`   | varying     |  Contains the complex spatial filtering function. |
+|  `NI_IOTAGS`| optional    |  Contains the function identifiers of outputs (Bright, dark, etc.) and information on polararization for both inputs and outputs. |
 
 *Table 2: Content of the NI_MOD data table*
 
