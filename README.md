@@ -4,7 +4,7 @@
 
 Standards live and die by their community. In order to get in touch with our community. The NIFITS Hackathon organized in Summer 2025 was very important to help create a solid and inclusive community by helping you kickstart your own applications. We hope to arganize more similar events soon.
 
-Note that version 0.0.8 and standard 0.6 introduces a modification of the field of view function. The use of telescope diameter for `FOV_TELDIAM` should be closer to a good approximation of the SM fiber spatial filter.
+Note that version 0.0.9 and standard 0.7 introduces a modification of the field of view function. The use of telescope diameter for `FOV_TELDIAM` in the Gaussian fiber model should be closer to a good approximation of the SM fiber spatial filter.
 
 ## The `nifits` package
 
