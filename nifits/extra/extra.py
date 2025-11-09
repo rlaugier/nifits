@@ -45,7 +45,7 @@ from scipy.stats import chi2 as chi2
 from typing import Union
 
 
-def local_sqrtm(amatrix):
+def local_sqrtm(amatrix, atol=1e-16):
     """
     Arguments:
         amatrix : A square matrix
@@ -56,7 +56,7 @@ def local_sqrtm(amatrix):
     # Eigendecomposition
     evalues, evectors = np.linalg.eig(amatrix)
     # Checking for singularity
-    assert not np.isclose(evalues, 0).any(), "The matrix is singular (or too close to it)"
+    assert not np.isclose(evalues, 0, atol=atol).any(), "The matrix is singular (or too close to it)"
     sqrt_matrix = evectors * np.sqrt(evalues) @ np.linalg.inv(evectors)
     return sqrt_matrix
 
@@ -77,7 +77,8 @@ class Post(be.NI_Backend):
     def create_whitening_matrix(self,
                                 replace: bool = False,
                                 md: types.ModuleType = np,
-                                local: bool = True):
+                                local: bool = True,
+                                atol: float = 1e-16):
         """
             Updates the whitening matrix:
 
@@ -98,7 +99,7 @@ class Post(be.NI_Backend):
         Ws = []
         for amat in self.nifits.ni_kcov.data_array:
             if local:
-                Ws.append(np.linalg.inv(local_sqrtm(amat)))
+                Ws.append(np.linalg.inv(local_sqrtm(amat, atol=atol)))
             else:
                 Ws.append(np.linalg.inv(sqrtm(amat)))
         self.Ws = md.array(Ws)

@@ -741,7 +741,7 @@ class NI_Backend(object):
         mydot.node("M", shape="rectangle", fontsize="22")
         mpw = "2"
         for i, inpol in enumerate(ni_iotag.inpola[0]):
-            innodename = f"Iutput {i}\n pola {inpol}"
+            innodename = f"Intput {i}\n pola {inpol}"
             mydot.node(innodename, penwidth=mpw, shape="rectangle", margin="0.01")
             mydot.edge(innodename, "M", penwidth=mpw, shape="rectangle", margin="0.01")
         for i, aninput in enumerate(ni_iotag.outdark[0]):

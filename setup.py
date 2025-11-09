@@ -2,7 +2,7 @@ import sys
 from setuptools import setup
 
 setup(name="nifits",
-    version="0.0.2",
+    version="0.0.9",
     description="A framework to handle the NIFITS Nullin Interferometry data standard",
     url="--",
     author="Romain Laugier",
