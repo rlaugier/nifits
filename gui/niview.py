@@ -168,11 +168,27 @@ if file_in is not None:
                     with cols[1]:
                         st.write(f"Frame {frame_index}")
                         if show_array:
+                            skydown_view = st.checkbox("Looking down from target", value=False)
                             fig_array = plt.figure(figsize=(5,4), dpi=100)
-                            for i, atelxy in enumerate(mynifits.ni_mod.appxy[frame_index]):
+                            main_x_label = "Aperture proj. position [m]"
+                            thearray = mynifits.ni_mod.appxy[frame_index]
+                            for i, atelxy in enumerate(thearray):
                                 plt.scatter(*atelxy, s=100)
+                            if skydown_view:
+                                leftlabel = "W"
+                                rightlabel = "E"
+                                arraytitle = f"Array as seen from the target looking down"
+                                final_x_label = f"< {leftlabel}       {main_x_label}       {rightlabel} >"
+                            else:
+                                leftlabel = "E"
+                                rightlabel = "W"
+                                arraytitle = f"Array as seen looking at the target through the array"
+                                final_x_label = f"< {leftlabel}       {main_x_label}       {rightlabel} >"
+                                plt.gca().invert_xaxis()
                             plt.gca().set_aspect("equal")
-                            plt.xlabel("Aperture projected position [m]")
+                            plt.xlabel(final_x_label)
+                            plt.ylabel("< S       Aperture position [m]       N >")
+                            plt.title(arraytitle, fontsize=9)
                             plt.tight_layout()
                             st.pyplot(fig_array, use_container_width=False)
 

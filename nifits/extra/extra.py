@@ -42,6 +42,13 @@ from scipy.stats import ncx2 as ncx2
 from scipy.stats import norm as norm
 from scipy.stats import chi2 as chi2
 
+from nifits.backend import optim
+# from cotengra import einsum as neweinsum
+# from jax.numpy import einsum as neweinsum
+# from nifits.backend import neweinsum
+# from numpy import einsum as neweinsum
+# np.einsum = neweinsum
+
 from typing import Union
 
 
@@ -144,7 +151,7 @@ class Post(be.NI_Backend):
         # Flatten the spectral and output dimension
         flat_full_shape = (*self.flatshape, full_shape[-1])
         flat_out = rearrange(signal, "frame wavelength output source -> frame (wavelength output) source")
-        wout = self.md.einsum("f o i , f i m -> f o m", self.Ws, flat_out)
+        wout = np.einsum("foi,fim->fom", self.Ws, flat_out)
         return wout
 
 
@@ -310,7 +317,7 @@ class Post(be.NI_Backend):
         print(ref_spectrum.unit)
         threshold = ncx2.ppf(1-pfa, df=self.fullyflatshape, nc=0.)
         x = ref_spectrum.reshape(-1, 1000)
-        xTx = np.einsum("o m , o m -> m", x, x)
+        xTx = np.einsum("om,om->m", x, x)
         pdet_Pfa = 1 - ncx2.cdf(threshold, self.fullyflatshape, xTx)
         return pdet_Pfa
 
@@ -382,7 +389,7 @@ class Post(be.NI_Backend):
         x = (ref_spectrum).reshape((-1, ref_spectrum.shape[-1]))
         print("Ref signal (x) unit: ", x.unit)
         print("Ref signal (x) shape: ", x.shape)
-        xtx = md.einsum("m i, i m -> m", x.T, x)
+        xtx = md.einsum("mi,im->m", x.T, x)
         lambda0 = 1.0e-3 * self.fullyflatshape
         # The solution lambda is the x^T.x value satisfying Pdet and Pfa
         sol = leastsq(residual_pdet_Te, lambda0,
@@ -456,7 +463,7 @@ class Post(be.NI_Backend):
                                                     to_si=True)
         print(ref_spectrum.unit)
         x = ref_spectrum.reshape(-1, 1000)
-        xTx = np.einsum("o m , o m -> m", x, x)
+        xTx = np.einsum("om,om->m", x, x)
         threshold = np.sqrt(xTx)*norm.ppf(1-pfa)
         # threshold = ncx2.ppf(1-pfa, df=self.fullyflatshape, nc=0.)
         pdet_Pfa = 1 - norm.cdf((threshold - xTx)/np.sqrt(xTx))
@@ -524,7 +531,7 @@ class Post(be.NI_Backend):
         x = (ref_spectrum).reshape((-1, ref_spectrum.shape[-1]))
         print("Ref signal (x) unit: ", x.unit)
         print("Ref signal (x) shape: ", x.shape)
-        xTx = md.einsum("m i, i m -> m", x.T, x)
+        xTx = np.einsum("mi,im->m", x.T, x)
         threshold = np.sqrt(xTx)*norm.ppf(1-pfa)
         # threshold = ncx2.ppf(1-pfa, df=self.fullyflatshape, nc=0.)
         # lambda0 = 1.0e-3 * self.fullyflatshape
@@ -870,7 +877,7 @@ def whitened_kiout(self):
     full_shape = data.shape
     flat_full_shape = (full_shape[0], full_shape[1]*full_shape[2])
     flat_out = rearrange(data, "frame wavelength output -> frame (wavelength output)")
-    wout = self.md.einsum("f o i , f i -> f o", self.Ws, flat_out)
+    wout = np.einsum("foi,fi->fo", self.Ws, flat_out)
     wout_full = wout.reshape((full_shape))
     return wout_full
 

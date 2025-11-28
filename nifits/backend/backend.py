@@ -14,6 +14,10 @@ import types
 
 import astropy.units as units
 import numpy as np
+# from cotengra import einsum as neweinsum
+# from jax.numpy import einsum as neweinsum
+from numpy import einsum as neweinsum
+# from einsum_bmm.einsum_bmm import einsum as neweinsum
 
 from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
 from nifits.io.oifits import nifits as NIFITSClass
@@ -30,6 +34,7 @@ from einops import rearrange
 
 mas2rad = units.mas.to(units.rad)
 rad2mas = units.rad.to(units.mas)
+optim = True
 
 
 # TODO Add methods to __add__ PointCollections for variable sampling
@@ -211,28 +216,45 @@ class PointCollection(object):
 
     def plot_frame(self, z=None, frame_index=0, wl_index=0,
                    out_index=0, mycmap=None, marksize_increase=1.0,
-                   colorbar=True, xlabel=True, title=True):
+                   colorbar=True, xlabel=True, ylabel=True,
+                   title=True,
+                   orientation_RA_DEC=True):
         import matplotlib.pyplot as plt
         marksize = marksize_increase * 50000 / self.shape[0]
+        if len(z.shape) == len(self.orig_shape):
+            myframe = z
+        else:
+            myframe = get_frame(z, frame_index=frame_index, wl_index=wl_index, out_index=out_index)
         if len(self.orig_shape) == 1:
-            plt.scatter(*self.coords, c=z[frame_index, wl_index, out_index, :],
+            plt.scatter(*self.coords, c=myframe,
                         cmap=mycmap, s=marksize)
             plt.gca().set_aspect("equal")
         else:
-            plt.imshow(z[frame_index, wl_index, out_index, :].reshape((self.orig_shape)),
+            plt.imshow(myframe.reshape((self.orig_shape)),
                        cmap=mycmap, extent=self.extent)
             plt.gca().set_aspect("equal")
 
         if colorbar:
             plt.colorbar()
-        if xlabel is True:
-            plt.xlabel("Relative position [mas]")
-        elif xlabel is not False:
-            plt.xlabel(xlabel)
         if title is True:
             plt.title(f"Output {out_index} for frame {frame_index}")
         elif title is not False:
             plt.title(title)
+        if orientation_RA_DEC:
+            plt.gca().invert_xaxis()
+            leftlabel = "E"
+            rightlabel = "W"
+        else :
+            leftlabel = "E"
+            rightlabel = "W"
+        if xlabel is True:
+            plt.xlabel(f"< {leftlabel}       Relative R.A. [mas]       {rightlabel} >")
+        elif xlabel is not False:
+            plt.xlabel(xlabel)
+        if ylabel is True:
+            plt.ylabel("< S       Relative Dec. [mas]       N >")
+        elif ylabel is not False:
+            plt.ylabel(ylabel)
 
     def __add__(self, other):
         """
@@ -279,6 +301,8 @@ class PointCollection(object):
         self.bb = transformed[1, :]
         self.cc = transformed[2, :]
 
+def get_frame(z, frame_index=0, wl_index=0, out_index=0):
+    return z[frame_index, wl_index, out_index, :]
 
 @dataclass
 class MovingCollection(object):
@@ -482,7 +506,9 @@ class NI_Backend(object):
         # print(a.shape)
         # phi = k[:,None,None,None] * md.array([anxy_array[:,:].dot(a[:,:]) for anxy_array in xy_array
         #                                     "frame beam x, x mpoint -> frame beam mpoint" 
-        phi = k[None, :, None, None] * md.einsum("f b x, x m -> f b m", xy_array[:, :, :], a[:, :])[:, None, :, :]
+        
+        # - sign included for consolidation of sign convention of V (0.0.10 - 0.8)
+        phi = - k[None, :, None, None] * neweinsum("fbx,xm->fbm", xy_array[:, :, :], a[:, :])[:, None, :, :]
         # print(a.shape)
         b = md.exp(1j * phi)
         if include_mod:
@@ -497,7 +523,7 @@ class NI_Backend(object):
         Get intensity from an array of sources.
 
         """
-        E = md.einsum("w o i , t w i m -> t w o m", self.nifits.ni_catm.M, xs)
+        E = neweinsum("woi,twim->twom", self.nifits.ni_catm.M, xs)
         I = md.abs(E) ** 2
         return I
 
@@ -516,7 +542,7 @@ class NI_Backend(object):
             The vector :math:`\boldsymbol{\kappa} = \mathbf{K}\cdot\mathbf{I}`
 
         """
-        KI = md.einsum("k o, t w o m -> t w k m", self.nifits.ni_kmat.K[:, :], Iarray)
+        KI = neweinsum("ko,twom->twkm", self.nifits.ni_kmat.K[:, :], Iarray)
         return KI
 
     def get_all_outs(self, alphas, betas,
@@ -583,7 +609,7 @@ class NI_Backend(object):
         k = 2 * md.pi / lambs
         a = md.array((alphas, betas), dtype=md.float64)
         #                                     "frame beam x, x frame mpoint -> frame beam mpoint" 
-        phi = k[None, :, None, None] * md.einsum("f b x, x f m -> f b m", xy_array[:, :, :], a[:, :])[:, None, :, :]
+        phi = - k[None, :, None, None] * neweinsum("fbx,xfm->fbm", xy_array[:, :, :], a[:, :])[:, None, :, :]
         b = md.exp(1j * phi)
         if include_mod:
             mods = self.get_modulation_phasor(md=md)[:, :, :, None]
@@ -651,7 +677,7 @@ class NI_Backend(object):
         """
         if (self.nifits.ni_dsamp is None) or (self.nifits.ni_oswavelength is None):
             return Is
-        Ids = np.einsum("l w, t w o m -> t l o m", self.nifits.ni_dsamp.D, Is)
+        Ids = neweinsum("lw,twom->tlom", self.nifits.ni_dsamp.D, Is)
         return Ids
 
     def plot_recorded(self, cmap="viridis", outputs=None, nrows_ncols=None,
