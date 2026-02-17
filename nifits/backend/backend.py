@@ -245,8 +245,8 @@ class PointCollection(object):
             leftlabel = "E"
             rightlabel = "W"
         else :
-            leftlabel = "E"
-            rightlabel = "W"
+            leftlabel = "W"
+            rightlabel = "E"
         if xlabel is True:
             plt.xlabel(f"< {leftlabel}       Relative R.A. [mas]       {rightlabel} >")
         elif xlabel is not False:
