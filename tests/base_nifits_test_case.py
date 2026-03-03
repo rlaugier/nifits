@@ -6,7 +6,7 @@ import numpy as np
 import sympy as sp
 from erfa import ErfaWarning
 
-import nifits.io.oifits as io
+import nifits.io.niio as io
 
 
 class BaseNIFITSTestCase(TestCase):
@@ -170,7 +170,8 @@ class BaseNIFITSTestCase(TestCase):
         wl_table
 
         del wl_data
-        oi_wavelength = io.OI_WAVELENGTH(data_table=wl_table, )
+        wl_header = io.OI_WAVELENGTH_DEFAULT_HEADER
+        oi_wavelength = io.OI_WAVELENGTH(data_table=wl_table, header=wl_header)
         # oi_wavelength = io.OI_WAVELENGTH()
 
         if include_downsampling:
@@ -198,7 +199,8 @@ class BaseNIFITSTestCase(TestCase):
         else:
             ni_iotags = None
 
-        myheader = fits.Header()
+        # myheader = fits.Header()
+        myheader = io.NI_NIFITS_DEFAULT_HEADER
         self.nifits = io.nifits(header=myheader,
                                 ni_catm=ni_catm,
                                 ni_fov=ni_fov,

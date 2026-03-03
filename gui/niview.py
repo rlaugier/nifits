@@ -1,7 +1,7 @@
 
 import streamlit as st
 
-import nifits.io.oifits as io
+import nifits.io.niio as io
 import nifits.backend as be
 
 import numpy as np

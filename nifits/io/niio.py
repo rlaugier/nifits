@@ -22,6 +22,7 @@ import astropy.units as u
 import astropy.table
 Table = astropy.table.Table
 from astropy.coordinates import EarthLocation
+from astropy.time import Time
 import datetime
 import warnings
 from packaging import version
@@ -34,14 +35,45 @@ import numpy.typing
 ArrayLike = np.typing.ArrayLike
 
 
-__version__ = "0.0.10"
-__standard_version__ = "0.8"
+
+__version__ = "0.1.0"
+__standard_version__ = "1.0"
+
+def __standard_version_int__():
+    """
+    Returns the nifits standard version as a pair
+    of integers (based on `__standard_version__` string).
+    """
+    ver_list = __standard_version__.split(".")
+    return int(ver_list[0]), int(ver_list[1])
+def __version_int__():
+    """
+    Returns the nifits standard version as a tuple
+    of three integers based on `__version__` string.
+    """
+    ver_list = __version__.split(".")
+    return int(ver_list[0]), int(ver_list[1]), int(ver_list[2])
 
 _mjdzero = datetime.datetime(1858, 11, 17)
+t0 = Time(val=0., format="mjd")
+t0.format = "isot"
 
 matchtargetbyname = False
 matchstationbyname = False
 refdate = datetime.datetime(2000, 1, 1)
+
+SUBS_V1 = [
+    ("ARRCOL", "COL_AR"),
+    ("value", "VALUE"),
+    ("APPXY", "APP_XY"),
+    ("offsets", "OFFSETS"),
+]
+SUBS_V1_0to1 = {}
+SUBS_V1_1to0 = {}
+for asub in SUBS_V1:
+    SUBS_V1_0to1[asub[0]] = asub[1]
+    SUBS_V1_1to0[asub[1]] = asub[0]
+    
 
 
 import warnings
@@ -49,7 +81,8 @@ def check_item(func):
     """
     A decorator for the `fits.Header.__getitem__`.
     This is here to save from compatibility issues with files of
-    standard version <= 0.2 while warning that that this version will 
+    standard version <= 0.2 while warning that that this version will
+    fail past 0.1.0
     """
     def inner(*args, **kwargs):
         good_kw = True
@@ -208,8 +241,21 @@ class NI_CATM(object):
 def nulfunc(self, *args, **kwargs):
     raise TypeError
 
+NI_NIFITS_DEFAULT_HEADER = fits.Header(cards=[
+    ("HIERARCH NIFITS INSNAME", "generic", "Name of the instrument, for cross_referencing"),
+    ("HIERARCH NIFITS NI_RMAJ", __standard_version_int__()[0], "Major version number of nifits standard (int)"),
+    ("HIERARCH NIFITS NI_RMIN", __standard_version_int__()[1], "Minor version number of nifits standard (int)"),
+    ("HIERARCH NIFITS LIB_NAME", __package__, "Name of the sofware library used to write the file, optional (str)"),
+    ("HIERARCH NIFITS LIB_REV", __version__, "Version of the software library used to write the file, optional (str) ")
 
-NI_OITAG_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS IOSWAPS", False, "The units for output values")])
+])
+
+OI_WAVELENGTH_DEFAULT_HEADER = fits.Header(cards=[
+    ("OI_REVN", 2, "Revision number for extensions relying on OIFITS"),
+    ("INSNAME", "generic", "Name of instrument, for cross-referencing" )
+])
+
+NI_IOTAG_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS IOSWAPS", False, "The units for output values")])
 
 NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS AMOD_PHAS_UNITS", "rad", "The units for modulation phasors"),
                                         ("HIERARCH NIFITS ARRCOL_UNITS", "m^2", "The units for collecting area")
@@ -218,7 +264,6 @@ NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS AMOD_PHAS_UNITS", "
 # Possible to use "chromatic_gaussian_radial", "diameter_gaussian_radial".
 # Simplest default is a gaussian with r0 = lambda/D
 NI_FOV_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS FOV_MODE","diameter_gaussian_radial","Type of FOV definition"),
-                                        ("HIERARCH NIFITS FOV_offset"),
                                         ("HIERARCH NIFITS FOV_TELDIAM", 8.0, "diameter of a collecting aperture for FOV"),
                                         ("HIERARCH NIFITS FOV_TELDIAM_UNIT", "m", ""),])
 
@@ -1082,12 +1127,22 @@ class nifits(object):
         print("contains_header:", obj_dict.__contains__("header"))
         return cls(**obj_dict)
 
+    def get_version(self, string=False):
+        mav = self.header["HIERARCH NIFITS NI_RMAJ"]
+        miv = self.header["HIERARCH NIFITS NI_RMIN"]
+        if string:
+            return f"{mav}.{miv}"
+        else:
+            return mav, miv
+        
+
     def to_nifits(self, filename:str = "",
                         static_only: bool = False,
                         dynamic_only: bool = False,
                         static_hash: str = "",
                         writefile: bool = True,
-                        overwrite: bool = False):
+                        overwrite: bool = False,
+                        checksum: bool = True):
         """
         Write the extension objects to a nifits file.
 
@@ -1100,12 +1155,11 @@ class nifits(object):
                           Defaultult: False
             static_hash : (str) The hash of the static file.
                         Default: ""
+            checksum : (bool) include checksum.
 
         """
         # TODO: Possibly, the static_hash should be a dictionary with
         # a hash for each extension
-        self.header["HIERARCH NIFITS VERSION"] = (__standard_version__,
-                            f"Writen with rlaugier/nifits v{__version__}")
         
         hdulist = fits.HDUList()
         hdu = fits.PrimaryHDU()
@@ -1135,37 +1189,63 @@ class nifits(object):
                 print(f"Warning: Could not find the {anext} object")
         print(hdu.header)
         if writefile:
-            hdulist.writeto(filename, overwrite=overwrite)
+            hdulist.writeto(filename, overwrite=overwrite, checksum=checksum)
             return hdulist
         else:
             return hdulist
 
-    def check_unit_coherence(self):
+    def check_unit_coherence(self, verbose=True):
         """
             Check the coherence of the units of and prints the result
         NI_IOUT, NI_KCOV, and NI_KIOUT if they exist.
 
         Otherwise, does nothing.
         """
+        no_data = True
         if hasattr(self, "ni_iout"):
-            print("NI_IOUT", self.ni_iout.unit)
+            no_data = False
+            if verbose:
+                print("NI_IOUT", self.ni_iout.unit)
         else:
-            print("No NI_IOUT")
+            if verbose:
+                print("No NI_IOUT")
         if hasattr(self, "ni_kiout"):
-            print("NI_KIOUT", self.ni_kiout.unit)
+            no_data = False
+            if verbose:
+                print("NI_KIOUT", self.ni_kiout.unit)
         else:
-            print("No NI_KIOUT")
+            if verbose:
+                print("No NI_KIOUT")
         if hasattr(self, "ni_kcov"):
-            print("NI_KCOV", self.ni_kcov.unit)
+            no_data = False
+            if verbose:
+                print("NI_KCOV", self.ni_kcov.unit)
         else:
-            print("No NI_KCOV")
-            
+            if verbose:
+                print("No NI_KCOV")
+
+        consistent = True
         if hasattr(self, "ni_iout") and hasattr(self, "ni_kiout"):
-            print(self.ni_iout.unit.is_equivalent(self.ni_kiout.unit))
+            check = self.ni_iout.unit.is_equivalent(self.ni_kiout.unit)
+            if verbose:
+                print(f"iout-kiout consistent {check}")
+            if not check:
+                consistent = False
         if hasattr(self, "ni_kcov") and hasattr(self, "ni_kiout"):
-            print(np.sqrt(self.ni_kcov.unit).is_equivalent(self.ni_kiout.unit))
+            check = self.ni_kcov.unit.is_equivalent(self.ni_kiout.unit**2)
+            if verbose:
+                print("kcov-kiout consistent {check}")
+            if not check:
+                consistent = False
         if hasattr(self, "ni_kcov") and hasattr(self, "ni_iout"):
-            print(np.sqrt(self.ni_kcov.unit).is_equivalent(self.ni_iout.unit))
+            check = self.ni_kcov.unit.is_equivalent(self.ni_iout.unit**2)
+            if verbose:
+                print(f"kcov-iout consistent {check}")
+            if not check:
+                consistent = False
+        if verbose:
+            print(f"Consistent data : {consistent}")
+        return consistent
 
 
 

@@ -19,8 +19,9 @@ import numpy as np
 from numpy import einsum as neweinsum
 # from einsum_bmm.einsum_bmm import einsum as neweinsum
 
-from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
-from nifits.io.oifits import nifits as NIFITSClass
+from nifits.io.niio import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
+from nifits.io.niio import nifits as NIFITSClass
+from nifits.io.niio import __version__, __version_int__, __standard_version__, __standard_version_int__
 
 ModuleType = types.ModuleType
 
@@ -344,7 +345,7 @@ class NI_Backend(object):
 
     """
 
-    # def __init__(self, myfits: type(io.oifits.NIFITS)):
+    # def __init__(self, myfits: type(io.nifits.NIFITS)):
     def __init__(self, nifits: NIFITSClass = None,
                  module=np):
         self.nifits = nifits
