@@ -2,10 +2,10 @@ import nifits
 """
 	This tool should promote a loaded NIFITS object to the standard NIFITS 1.0
 """
-# mysubs = nifits.niio.SUBS_V1
-# mykeywords = nifits.niio.NI_NIFITS_DEFAULT_HEADER
+default_subs = nifits.niio.SUBS_V1
+default_keywords = nifits.niio.NI_NIFITS_DEFAULT_HEADER
 
-def convert_object(mynifits, conversion_list, keywords_list):
+def convert_object(mynifits, conversion_list=default_subs, keywords_list=default_keywords):
     """
     Converts an NIFITS 0.x object into an NIFITS 1.0 object.
 
