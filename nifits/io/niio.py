@@ -1208,7 +1208,17 @@ class nifits(object):
         extensions  = []
         for anext in NIFITS_EXTENSIONS:
             if hasattr(self, anext.lower()):
-                extensions.append(getattr(self, anext.lower()))
+                theext = getattr(self, anext.lower())
+                header_info = self.header[f"HIERARCH NIFITS {anext}"]
+                if check:
+                    if header_info != "Included":
+                        assert theext is None, "Extension supposedly missing but found"
+                    else:
+                        assert theext is not None, "Extension supposedly present but missing"
+                        myclass = getclass(anext)
+                        assert type(theext) is myclass, "Wrong extension type"
+                            
+                extensions.append(theext)
         return extensions
 
     def check_unit_coherence(self, verbose=True):
