@@ -32,7 +32,7 @@ The work of this consortium will focus on laying out and demonstrating the princ
 
 * Columns of `NI_MOD` table:
   - `ARRCOL` -> `COL_AR` for "Collecting area"
-  - `APXY` -> `AP_XY` for "Aperture XY position"
+  - `APPXY` -> `AP_XY` for "Aperture XY position"
 * Columns of `NI_FOV` table:
   - `offsets` -> `OFFSETS` for harmonization
 * Columns of `NI_IOUT` table:
@@ -44,6 +44,10 @@ The work of this consortium will focus on laying out and demonstrating the princ
     - `HIERARCH NIFITS NI_RMIN`, "Minor version number of nifits standard (int)", `__standard_version_int__()[1]`,
     - `HIERARCH NIFITS LIB_NAME`, "Name of the sofware library used to write the file, optional (str)", `__package__`,
     - `HIERARCH NIFITS LIB_REV`, "Version of the software library used to write the file, optional (str) " `__version__`,
+
+### Deprecation in version 0.1.0 :
+* `arrcol` is deprecated. use `col_ar` instead
+* `appxy` is deprecated. use `ap_xy` instead
   
 
 ## Requirements
@@ -110,8 +114,8 @@ A description of the files can be found in the [NIFITS cheatsheet](documentation
 |  `MJD`       |  float                        |  day             |  |
 |  `INT_TIME`  |  float                        |  s               | Exposure time |
 |  `MOD_PHAS`  |  $n_{\lambda} \times n_a \times$ complex |                  | Complex phasor of modulation for the collector |
-|  `APPXY`     |  $n_a \times 2 \times$ float |  m               | Projected location of subapertures in the plane orthogonal to the line of sight and oriented as $(\alpha, \delta)$ |
-|  `ARRCOL`    |  $n_a \times$ float          |  $\mathrm{m}^2$  | Collecting area of the subaperture |
+|  `AP_XY`     |  $n_a \times 2 \times$ float |  m               | Projected location of subapertures in the plane orthogonal to the line of sight and oriented as $(\alpha, \delta)$ |
+|  `COL_AR`    |  $n_a \times$ float          |  $\mathrm{m}^2$  | Collecting area of the subaperture |
 |  `FOV_INDEX` |  $n_a \times$ int           |  NA              | The entry of the `NI_FOV` to use for this subaperture. |
 
 Important implementation hints:

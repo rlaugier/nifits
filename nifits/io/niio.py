@@ -39,6 +39,8 @@ ArrayLike = np.typing.ArrayLike
 __version__ = "0.1.0"
 __standard_version__ = "1.0"
 
+EXTENSION_INCLUDED = "Included"
+
 def __standard_version_int__():
     """
     Returns the nifits standard version as a pair
@@ -262,7 +264,7 @@ OI_TARGET_DEFAULT_HEADER = fits.Header(cards=[
 NI_IOTAG_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS IOSWAPS", False, "The units for output values")])
 
 NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS AMOD_PHAS_UNITS", "rad", "The units for modulation phasors"),
-                                        ("HIERARCH NIFITS ARRCOL_UNITS", "m^2", "The units for collecting area")
+                                        ("HIERARCH NIFITS COL_AR_UNITS", "m^2", "The units for collecting area")
                                             ])
 
 # Possible to use "chromatic_gaussian_radial", "diameter_gaussian_radial".
@@ -692,7 +694,7 @@ class NI_IOUT(NI_EXTENSION):
     name = "NI_IOUT"
     @property
     def iout(self):
-        return self.data_table["value"].data
+        return self.data_table["VALUE"].data
     def set_unit(self, new_unit, comment=None):
         if comment is None:
             comment = "The unit of the raw output flux."
@@ -710,10 +712,10 @@ class NI_KIOUT(NI_EXTENSION):
     name = "NI_KIOUT"
     @property
     def kiout(self):
-        return self.data_table["value"].data
+        return self.data_table["VALUE"].data
     @property
     def shape(self):
-        return self.data_table["value"].data.shape
+        return self.data_table["VALUE"].data.shape
     def set_unit(self, new_unit, comment=None):
         if comment is None:
             comment = "The unit of the processed flux."
@@ -888,7 +890,7 @@ class NI_MOD(NI_EXTENSION):
        |               |                            |                  | modulation for    |
        |               |                            |                  | all collectors    |
        +---------------+----------------------------+------------------+-------------------+
-       | ``APPXY``     | ``n_a, 2`` ``float``       | m                | Projected         |
+       | ``AP_XY``     | ``n_a, 2`` ``float``       | m                | Projected         |
        |               |                            |                  | location of       |
        |               |                            |                  | subapertures in   |
        |               |                            |                  | the plane         |
@@ -898,7 +900,7 @@ class NI_MOD(NI_EXTENSION):
        |               |                            |                  | ``(               |
        |               |                            |                  | \alpha, \delta)`` |
        +---------------+----------------------------+------------------+-------------------+
-       | ``ARRCOL``    | ``n_a`` ``float``          | ``\mathrm{m}^2`` | Collecting area   |
+       | ``COL_AR``    | ``n_a`` ``float``          | ``\mathrm{m}^2`` | Collecting area   |
        |               |                            |                  | of the            |
        |               |                            |                  | subaperture       |
        +---------------+----------------------------+------------------+-------------------+
@@ -923,8 +925,16 @@ class NI_MOD(NI_EXTENSION):
 
     @property
     def appxy(self):
+        """DEPRECATED Shape n_frames x n_a x 2
+        use `ap_xy` instead
+        """
+        raise DeprecationWarning("Handle appxy is deprecated since version 0.1.0. Use `ap_xy` instead")
+        return self.ap_xy
+
+    @property
+    def ap_xy(self):
         """Shape n_frames x n_a x 2"""
-        return self.data_table["APPXY"].data.astype(float)
+        return self.data_table["AP_XY"].data.astype(float)
 
     @property
     def dateobs(self):
@@ -941,7 +951,15 @@ class NI_MOD(NI_EXTENSION):
         """
         The collecting area of the telescopes
         """
-        return self.data_table["ARRCOL"].data
+        raise DeprecationWarning("Handle arrcol is deprecated since version 0.1.0. Use `col_ar` instead")
+        return self.col_ar
+
+    @property
+    def col_ar(self):
+        """
+        The collecting area of the telescopes
+        """
+        return self.data_table["COL_AR"].data
 
     @property
     def int_time(self):
@@ -972,7 +990,7 @@ def create_basic_fov_data(D, offset, lamb, n):
         return phasor.astype(complex)
     all_offsets = np.zeros((n, lamb.shape[0], 2))
     indices = np.arange(n)
-    mytable = Table(names=["INDEX", "offsets"],
+    mytable = Table(names=["INDEX", "OFFSETS"],
                     data=[indices, all_offsets])
     return mytable, xy2phasor
 
@@ -1023,7 +1041,7 @@ class NI_FOV(NI_EXTENSION):
             
             * Mode: {mode}
             * Telescope diameter {mydiam} {mydiam_unit}
-            * offsets : {self.data_table["offsets"]}
+            * OFFSETS : {self.data_table["OFFSETS"]}
 
             """
             return myinfostring
@@ -1039,14 +1057,14 @@ class NI_FOV(NI_EXTENSION):
 #     in NI_CATM. It is recommended to include in CATM the static effects and in
 #     NI_MOD any affect that may vary throughout the observing run."""
 #     def __init__(self, app_index, target_id, time, mjd,
-#                 int_time, mod_phas, app_xy, arrcol,
+#                 int_time, mod_phas, ap_xy, arrcol,
 #                 fov_index):
 #         self.app_index = app_index
 #         self.target_id = target_id
 #         self.time = time
 #         self.mjd = mjd
 #         self.int_time = int_time
-#         self.app_xy = app_xy
+#         self.ap_xy = ap_xy
 #         self.arrcol = arrcol
 #         self.fov_index = fov_index
 #         self.mod_phas = mod_phas
@@ -1198,7 +1216,7 @@ class nifits(object):
         else:
             return hdulist
 
-    def extension_objects(self):
+    def extension_objects(self, check=True):
         """
             Get a lits of the nifits extensions in this object.
         

@@ -133,8 +133,8 @@ class BaseNIFITSTestCase(TestCase):
         target_ids = 0 * np.ones(self.n_time)
         int_times = np.gradient(seconds)
         mod_phas = np.ones((self.n_time, self.n_wl_bin, n_telescopes), dtype=complex)
-        appxy = collector_position.transpose((0, 2, 1))
-        arrcol = np.ones((self.n_time, n_telescopes)) * np.pi * telescope_diam ** 2 / 4
+        ap_xy = collector_position.transpose((0, 2, 1))
+        col_ar = np.ones((self.n_time, n_telescopes)) * np.pi * telescope_diam ** 2 / 4
         fov_index = np.ones(self.n_time)
 
         app_index = Column(data=app_index, name="APP_INDEX",
@@ -149,15 +149,15 @@ class BaseNIFITSTestCase(TestCase):
                            unit="s", dtype=float)
         mod_phas = Column(data=mod_phas, name="MOD_PHAS",
                           unit=None, dtype=complex)
-        appxy = Column(data=appxy, name="APPXY",
+        ap_xy = Column(data=ap_xy, name="AP_XY",
                        unit="m", dtype=float)
-        arrcol = Column(data=arrcol, name="ARRCOL",
+        col_ar = Column(data=col_ar, name="COL_AR",
                         unit="m^2", dtype=float)
         fov_index = Column(data=fov_index, name="FOV_INDEX",
                            unit=None, dtype=int)
         mymod_table = Table()
         mymod_table.add_columns((app_index, target_id, times_relative, mjds,
-                                 int_times, mod_phas, appxy, arrcol, fov_index))
+                                 int_times, mod_phas, ap_xy, col_ar, fov_index))
         mymod_table
         mynimod = io.NI_MOD(mymod_table)
 

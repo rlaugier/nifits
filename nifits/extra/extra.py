@@ -873,7 +873,7 @@ def whitened_kiout(self):
         wout_full  : [ArrayLike] The resulting outputs with shape
                     (nframes, )
     """
-    data = self.data_table["value"].data
+    data = self.data_table["VALUE"].data
     full_shape = data.shape
     flat_full_shape = (full_shape[0], full_shape[1]*full_shape[2])
     flat_out = rearrange(data, "frame wavelength output -> frame (wavelength output)")
