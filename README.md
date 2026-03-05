@@ -2,6 +2,8 @@
 
 ## Breaking news:
 
+Milestone: The NIFITS standard is now at its version 1.0 . Version 0 to 1 bring breaking changes for harmonization and future-proofing.
+
 Standards live and die by their community. In order to get in touch with our community. The NIFITS Hackathon organized in Summer 2025 was very important to help create a solid and inclusive community by helping you kickstart your own applications. We hope to arganize more similar events soon.
 
 Note that version 0.0.9 and standard 0.7 introduces a modification of the field of view function. The use of telescope diameter for `FOV_TELDIAM` in the Gaussian fiber model should be closer to a good approximation of the SM fiber spatial filter.
@@ -23,6 +25,26 @@ This data standard aims to facilitate the exchange of nulling interferometry dat
 Nulling interferometry can take many forms. Simple Bracewell, Double Bracewell, Kernel Nuller, active chopping etc. For this reason, the data is useless without the corresponding description of the instrument.
 
 The work of this consortium will focus on laying out and demonstrating the principle of operation of the NIFITS standard, including the respective roles of *the creator* of files *the user* of files, and third party libraries.
+
+## Definition of NIFITS 1.0
+
+### Breaking changes of version 1.0
+
+* Columns of `NI_MOD` table:
+  - `ARRCOL` -> `COL_AR` for "Collecting area"
+  - `APXY` -> `AP_XY` for "Aperture XY position"
+* Columns of `NI_FOV` table:
+  - `offsets` -> `OFFSETS` for harmonization
+* Columns of `NI_IOUT` table:
+  - `values` -> `VALUES` for harmonization
+* Columns of `NI_IOUT` table:
+  - `values` -> `VALUES` for harmonization
+* Neaw primary header keywords:
+    - `HIERARCH NIFITS NI_RMAJ`, "Major version number of nifits standard (int)", `__standard_version_int__()[0]`,
+    - `HIERARCH NIFITS NI_RMIN`, "Minor version number of nifits standard (int)", `__standard_version_int__()[1]`,
+    - `HIERARCH NIFITS LIB_NAME`, "Name of the sofware library used to write the file, optional (str)", `__package__`,
+    - `HIERARCH NIFITS LIB_REV`, "Version of the software library used to write the file, optional (str) " `__version__`,
+  
 
 ## Requirements
 ### Top level
@@ -46,7 +68,6 @@ The standard dictates the normalized algorithm using the metadata as an instrume
 ### Common to reduction and interpretation stage
 Since part of the metadata must be recorded during the acquisition, it makes sense that partial forms of the standard be created durin acquisition to be completed during the preliminary reduction, before archiving.
 
-## Provisional definition (as of 06/2024)
 
 ### Basic working principle
 

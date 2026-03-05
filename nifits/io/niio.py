@@ -64,8 +64,8 @@ refdate = datetime.datetime(2000, 1, 1)
 
 SUBS_V1 = [
     ("ARRCOL", "COL_AR"),
+    ("APPXY", "AP_XY"),
     ("value", "VALUE"),
-    ("APPXY", "APP_XY"),
     ("offsets", "OFFSETS"),
 ]
 SUBS_V1_0to1 = {}
@@ -251,6 +251,10 @@ NI_NIFITS_DEFAULT_HEADER = fits.Header(cards=[
 ])
 
 OI_WAVELENGTH_DEFAULT_HEADER = fits.Header(cards=[
+    ("OI_REVN", 2, "Revision number for extensions relying on OIFITS"),
+    ("INSNAME", "generic", "Name of instrument, for cross-referencing" )
+])
+OI_TARGET_DEFAULT_HEADER = fits.Header(cards=[
     ("OI_REVN", 2, "Revision number for extensions relying on OIFITS"),
     ("INSNAME", "generic", "Name of instrument, for cross-referencing" )
 ])
