@@ -1194,6 +1194,19 @@ class nifits(object):
         else:
             return hdulist
 
+    def extension_objects(self):
+        """
+            Get a lits of the nifits extensions in this object.
+        
+        Returns:
+            extensions : a list of the extension objects of the file.
+        """
+        extensions  = []
+        for anext in NIFITS_EXTENSIONS:
+            if hasattr(self, anext.lower()):
+                extensions.append(getattr(self, anext.lower()))
+        return extensions
+
     def check_unit_coherence(self, verbose=True):
         """
             Check the coherence of the units of and prints the result
