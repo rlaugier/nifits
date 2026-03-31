@@ -29,6 +29,9 @@ def mod2cs(mod, scalor=40.):
     s = scalor * np.abs(mod)**2
     return c, s
 
+def check_version_and_upgrade(anifits):
+    if anifits.header.keys
+
 file_in = st.file_uploader("Load a nifits file", type=["nifits"])
 if file_in is not None:
     mynifits = io.nifits.from_nifits(file_in)
@@ -171,7 +174,7 @@ if file_in is not None:
                             skydown_view = st.checkbox("Looking down from target", value=False)
                             fig_array = plt.figure(figsize=(5,4), dpi=100)
                             main_x_label = "Aperture proj. position [m]"
-                            thearray = mynifits.ni_mod.appxy[frame_index]
+                            thearray = mynifits.ni_mod.ap_xy[frame_index]
                             for i, atelxy in enumerate(thearray):
                                 plt.scatter(*atelxy, s=100)
                             if skydown_view:

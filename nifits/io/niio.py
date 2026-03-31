@@ -47,7 +47,7 @@ def __standard_version_int__():
     of integers (based on `__standard_version__` string).
     """
     ver_list = __standard_version__.split(".")
-    return int(ver_list[0]), int(ver_list[1])
+    return np.int16(ver_list[0]), np.int16(ver_list[1])
 def __version_int__():
     """
     Returns the nifits standard version as a tuple
@@ -185,7 +185,7 @@ class OI_STATION(object):
             (self.tel_name != other.tel_name) or
             (self.sta_name != other.sta_name) or
             (self.diameter != other.diameter) or
-            (not _array_eq(self.staxyz, other.staxyz)) or
+            (not array_eq(self.staxyz, other.staxyz)) or
             (self.fov != other.fov) or
             (self.fovtype != other.fovtype))
 
@@ -244,7 +244,7 @@ def nulfunc(self, *args, **kwargs):
     raise TypeError
 
 NI_NIFITS_DEFAULT_HEADER = fits.Header(cards=[
-    ("HIERARCH NIFITS INSNAME", "generic", "Name of the instrument, for cross_referencing"),
+    ("HIERARCH NIFITS INSTRUMENT", "generic", "Name of the instrument, for cross referencing."),
     ("HIERARCH NIFITS NI_RMAJ", __standard_version_int__()[0], "Major version number of nifits standard (int)"),
     ("HIERARCH NIFITS NI_RMIN", __standard_version_int__()[1], "Minor version number of nifits standard (int)"),
     ("HIERARCH NIFITS LIB_NAME", __package__, "Name of the sofware library used to write the file, optional (str)"),
@@ -253,12 +253,12 @@ NI_NIFITS_DEFAULT_HEADER = fits.Header(cards=[
 ])
 
 OI_WAVELENGTH_DEFAULT_HEADER = fits.Header(cards=[
-    ("OI_REVN", 2, "Revision number for extensions relying on OIFITS"),
+    ("OI_REVN", np.int16(2), "Revision number for extensions relying on OIFITS"),
     ("INSNAME", "generic", "Name of instrument, for cross-referencing" )
 ])
 OI_TARGET_DEFAULT_HEADER = fits.Header(cards=[
-    ("OI_REVN", 2, "Revision number for extensions relying on OIFITS"),
-    ("INSNAME", "generic", "Name of instrument, for cross-referencing" )
+    ("OI_REVN", np.int16(2), "Revision number for extensions relying on OIFITS"),
+    ("TARGET_ID", np.int16(1), "Target id for cross-referencing. >= 1")
 ])
 
 NI_IOTAG_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS IOSWAPS", False, "The units for output values")])
@@ -876,7 +876,7 @@ class NI_MOD(NI_EXTENSION):
        |               |                            |                  | subaperture       |
        |               |                            |                  | (starts at 0)     |
        +---------------+----------------------------+------------------+-------------------+
-       | ``TARGET_ID`` |  ``int``                   | d                | Index of target   |
+       | ``TARGET_ID`` |  ``int`` 16bit                     | d                | Index of target   |
        |               |                            |                  | in ``OI_TARGET``  |
        +---------------+----------------------------+------------------+-------------------+
        | ``TIME``      | ``float``                  | s                | Backwards         |
