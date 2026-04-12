@@ -30,7 +30,18 @@ def mod2cs(mod, scalor=40.):
     return c, s
 
 def check_version_and_upgrade(anifits):
-    if anifits.header.keys
+    """
+        A check for the file standard version.
+    WARNING: this will be deprecated
+    """
+    if "HIERARCH NIFITS NI_RMAJ" in anifits.header.keys:
+        a = anifits.header["HIERARCH NIFITS NI_RMAJ"] == 1
+    else:
+        raise DeprecationWarning("At some point, support for V0 files will stop.")
+        a = 0
+            
+    return a
+            
 
 file_in = st.file_uploader("Load a nifits file", type=["nifits"])
 if file_in is not None:
