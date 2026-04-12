@@ -26,6 +26,7 @@ from astropy.time import Time
 import datetime
 import warnings
 from packaging import version
+from . import utils
 
 import sys
 from dataclasses import dataclass, field
@@ -243,12 +244,41 @@ class NI_CATM(object):
 def nulfunc(self, *args, **kwargs):
     raise TypeError
 
+
+
 NI_NIFITS_DEFAULT_HEADER = fits.Header(cards=[
+    ("TELESCOP", "generic array", "A generic identification of the array"),
+    ("INSTRUME", "generic instrument", "A generic identification of the instrument"),
+    ("OBSERVER", "generic observer", "Who acquired the data"),
+    ("OBJECT", "generic object" , "Object identifier"),
+    ("INSMODE", "generic mode" , "Instrument mode"),
     ("HIERARCH NIFITS INSTRUMENT", "generic", "Name of the instrument, for cross referencing."),
     ("HIERARCH NIFITS NI_RMAJ", __standard_version_int__()[0], "Major version number of nifits standard (int)"),
     ("HIERARCH NIFITS NI_RMIN", __standard_version_int__()[1], "Minor version number of nifits standard (int)"),
     ("HIERARCH NIFITS LIB_NAME", __package__, "Name of the sofware library used to write the file, optional (str)"),
     ("HIERARCH NIFITS LIB_REV", __version__, "Version of the software library used to write the file, optional (str) ")
+])
+
+NI_NIFITS_OPTIONAL_KEYWORDS = fits.Header(cards=[
+    ("REFERENC", "", "Bibliographic reference"),
+    ("PROG_ID", "generic program", "Program ID"),
+    ("PROCSOFT", "generic red. software", "Versioned data reduction software"),
+    ("OBSTECH", "nulling", "Technique of observation"),
+    ("RA", float(0.0), "Target Right Ascension at mean EQUINOX (deg)"),
+    ("DEC", float(0.0), "Target Declination at mean EQUINOX (deg)"),
+    ("EQUINOX", 2000.0, "Standard FK5 (years)"),
+    ("RADECSYS", "FK5", "Coordinate reference frame"),
+    ("SPECSYS", "TOPOCENTR", "Reference frame for spectral coord" ),
+    ("TEXPTIME", float(0.0), "Maximum elapsed time for data point"),
+    ("MJD-OBS", float(0.0), "Start of observation (MJD)"),
+    ("MJD-END", float(0.0), "End of observation (MJD)"),
+    ("BASE_MIN", float(0.0), "Minimum projected Baseline"),
+    ("BASE_MAX", float(0.0), "Maximum projected Baseline"),
+    ("WAVELMIN", float(0.0), "Minimum wavelength (nm)"),
+    ("WAVELMAX", float(0.0), "Maximum wavelength (nm)"),
+    ("NUM_CHAN", 0, "Total number of spectral channels"),
+    ("SPEC_RES", float(0.0), "Reference spectral resolution"),
+    ("NULLERR", float(0.0), "Representative null flux uncertainty")
 
 ])
 
@@ -636,6 +666,7 @@ class OI_TARGET(NI_EXTENSION):
                                     float, float, float, float, 
                                     float, float, str, str ],)
         return cls(data_table=data_table)
+
     def add_target(self, target_id=0, target="MyTarget", raep0=0., decep0=0.,
                         equinox=0., ra_err=0., dec_err=0.,
                         sysvel=0., veltyp="", veldef="",
@@ -945,6 +976,38 @@ class NI_MOD(NI_EXTENSION):
         """
         raise NotImplementedError("self.dateobs")
         return None
+
+    @property
+    def mjd_obs(self):
+        """
+            Get the start mjd.
+        """
+        mjd_array = self.data_table["MJD"].data
+        start_mjd = np.nanmin(mjd_array)
+        return start_mjd
+
+    @property
+    def mjd_end(self):
+        """
+            Get the end mjd
+        """
+        mjd_array = self.data_table["MJD"].data
+        end_mjd = np.nanmax(mjd_array)
+        return end_mjd
+
+    @property
+    def date_obs(self):
+        """
+            Get the start ISOT.
+        """
+        date = Time(val=self.mjd_obs, format="mjd")
+        return date.isot
+
+    @property
+    def date_end(self):
+        date_end = Time(val=self.mjd_end, format="mjd")
+        return date_end.isot
+        
 
     @property
     def arrcol(self):
@@ -1291,7 +1354,172 @@ class nifits(object):
         if verbose:
             print(f"Consistent data : {consistent}")
         return consistent
+    
+    def refresh_primary_header(self, all=False, verbose=True,
+                                **kwargs):
+        """
+        Args:
+            `all` : `Bool` (False) If Force the update of all relevent keywords.
+            Exceptions:
+            * `MJD-OBS` is designated `MJD_OBS`
+            * `MJD-END` is designated `MJD_END`
+            * `BASE`
 
+        Options : 
+            * True : Force the update of the keyword
+            * None : Only update if centent contains `generic`
+              for strings, NaN for floats or 0 for int.
+            * False : Do not update.
+    
+        """
+        keywords = {
+            "DATE_OBS": "DATE-OBS",
+            "TELESCOP": "TELESCOP",
+            "INSTRUME": "INSTRUME",
+            "OBJECT": "OBJECT",
+            "RA": "RA",
+            "DEC": "DEC",
+            "EQUINOX": "EQUINOX",
+            "RADECSYS": "RADECSYS",
+            "TEXPTIME": "TEXPTIME",
+            "MJD_OBS": "MJD-OBS",
+            "MJD_END": "MJD-END",
+            "BASE_MIN": "BASE_MIN",
+            "BASE_MAX": "BASE_MAX",
+            "WAVELMIN": "WAVELMIN",
+            "WAVELMAX": "WAVELMAX",
+            "NUM_CHAN": "NUM_CHAN",
+            "SPEC_RES": "SPEC_RES",
+            "NULL_ERR": "NULL_ERR",
+        }
+        for akw, akey in keywords.items():
+            update = False
+            if akw in kwargs:
+                if kwargs[akw] is False:
+                    pass
+            elif akw in kwargs:
+                if kwargs[akw] is True:
+                    update = True
+            elif all is True:
+                update = True
+            if update :
+                match akey:
+                    case "DATE-OBS":
+                        timetobs = self.ni_mod.date_obs
+                        self.header[akey] = timetobs
+                    case "TELESCOP":
+                        if verbose: print("Updating TELESCOP")
+                        if hasattr(self, "ni_array"):
+                            if self.ni_array is not None:
+                                if "ARRNAME" in self.ni_array.header:
+                                    arrayname = self.oi_array.header["ARRNAME"]
+                                    self.header[akey] = arrayname
+                                    if verbose: print(f"Updated {akey}")
+                    case "INSTRUME":
+                        if verbose: print("No instrument information stored")
+                        pass
+                    
+                    case "OBJECT":
+                        if verbose: print("Updating OBJECT")
+                        if hasattr(self, "oi_target"):
+                            if self.oi_target is not None:
+                                mytarg = self.oi_target.data_table["TARGET"].data[0]
+                                self.header[akey] = mytarg
+                    case "RA":
+                        if verbose: print("Updating RA")
+                        if hasattr(self, "oi_target"):
+                            if self.oi_target is not None:
+                                myres = self.oi_target.data_table["RAEP0"].data[0]
+                                self.header[akey] = myres
+                    case "DEC":
+                        if verbose: print("Updating DEC")
+                        if hasattr(self, "oi_target"):
+                            if self.oi_target is not None:
+                                myres = self.oi_target.data_table["DECEP0"].data[0]
+                                self.header[akey] = myres
+                    case "EQUINOX":
+                        if verbose: print("Updating EQUINOX")
+                        if hasattr(self, "oi_target"):
+                            if self.oi_target is not None:
+                                myres = self.oi_target.data_table["EQUINOX"].data[0]
+                                self.header[akey] = myres
+                    case "RADECSYS":
+                        pass
+                    case "TEXPTIME":
+                        if verbose: print("Updating EXPTIME")
+                        if hasattr(self, "ni_mod"):
+                            if self.ni_mod is not None:
+                                myres = self.ni_mod.int_time
+                                self.header[akey] = np.nanmax(myres)
+                                if verbose: print("Updated with max of INT_TIME (for consistency with oifits2.)")
+                    case "MJD-OBS":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "ni_mod"):
+                            if self.ni_mod is not None:
+                                mjdobs = self.ni_mod.mjd_obs
+                                self.header[akey] = mjdobs
+                    case "MJD-END":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "ni_mod"):
+                            if self.ni_mod is not None:
+                                mjdend = self.ni_mod.mjd_end
+                                self.header[akey] = mjdend
+                    case "BASE_MIN":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "ni_mod"):
+                            if self.ni_mod is not None:
+                                locs = self.ni_mod.ap_xy
+                                alluv = []
+                                for aloc in locs:
+                                    uv, dump = utils.get_uv(aloc)
+                                    alluv.append(uv)
+                                alluv = np.array(alluv)
+                                flatuv = alluv.reshape((-1,2))
+                                ls = np.hypot(*flatuv.T)
+                                self.header[akey] = np.min(ls)
+                    case "BASE_MAX":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "ni_mod"):
+                            if self.ni_mod is not None:
+                                alluv = []
+                                for aloc in locs:
+                                    uv, dump = utils.get_uv(aloc)
+                                    alluv.append(uv)
+                                alluv = np.array(alluv)
+                                flatuv = alluv.reshape((-1,2))
+                                ls = np.hypot(*flatuv.T)
+                                self.header[akey] = np.max(ls)
+                    case "WAVELMIN":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "oi_wavelength"):
+                            if self.oi_wavelength is not None:
+                                wls_m = self.oi_wavelength.lambs
+                                wls = wls_m * u.m.to(u.nm)
+                                self.header[akey] = np.min(wls)
+                    case "WAVELMAX":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "oi_wavelength"):
+                            if self.oi_wavelength is not None:
+                                wls_m = self.oi_wavelength.lambs
+                                wls = wls_m * u.m.to(u.nm)
+                                self.header[akey] = np.max(wls)
+                    case "NUM_CHAN":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "oi_wavelength"):
+                            if self.oi_wavelength is not None:
+                                wls = self.oi_wavelength.lambs
+                                self.header[akey] = wls.shape[0]
+                    case "SPEC_RES":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "oi_wavelength"):
+                            if self.oi_wavelength is not None:
+                                lambs = self.oi_wavelength.lambs
+                                dlambs = self.oi_wavelength.dlambs
+                                r = np.mean(lambs) / np.mean(dlambs)
+                                self.header[akey] = r
+                    case "NULL_ERR":
+                        if verbose: print(f"Updating {akey}")
+                        print("NotImplemented : Must convert the kcov into Jy")
 
 
 
