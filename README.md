@@ -39,11 +39,42 @@ The work of this consortium will focus on laying out and demonstrating the princ
   - `values` -> `VALUES` for harmonization
 * Columns of `NI_IOUT` table:
   - `values` -> `VALUES` for harmonization
-* Neaw primary header keywords:
+* Neaw primary header keywords (for version handling and to offer compatibility with OIFITS in databases):
+  + For version handling:
     - `HIERARCH NIFITS NI_RMAJ`, "Major version number of nifits standard (int)", `__standard_version_int__()[0]`,
     - `HIERARCH NIFITS NI_RMIN`, "Minor version number of nifits standard (int)", `__standard_version_int__()[1]`,
     - `HIERARCH NIFITS LIB_NAME`, "Name of the sofware library used to write the file, optional (str)", `__package__`,
     - `HIERARCH NIFITS LIB_REV`, "Version of the software library used to write the file, optional (str) " `__version__`,
+  + For intergration with OIFITS databases (most of them obtional)
+    - `ORIGIN`, "", Mandatory
+    - `DATE`, "", Optional
+    - `DATE-OBS`, "", Mandatory
+    - `CONTENT`, "", Mandatory
+    - `AUTHOR`, "", Mandatory
+    - `DATASUM`, "", Optional
+    - `CHECKSUM`, "", Optional
+    - `TELESCOP`, "", Mandatory
+    - `INSTRUME`, "Replaces the HIERARCH NIFITS INSTRUMENT keyword.", Mandatory
+    - `OBSERVER`, "", Mandatory
+    - `OBJECT`, ""
+    - `INSMODE`, "", Mandatory
+    - `REFERENC`, "", Optional
+    - `PROG_ID`, "", Optional
+    - `PROCSOFT`, "", Optional
+    - `OBSTECH`, "", Optional
+    - `RA`, "", Optional
+    - `DEC`, "", Optional
+    - `EQUINOX`, "", Optional
+    - `RADECSYS`, "", Optional
+    - `MJD-OBS`, "", Optional
+    - `MJD-END`, "", Optional
+    - `BASE_MIN`, "", Optional
+    - `BASE_MAX`, "", Optional
+    - `WAVELMIN`, "", Optional
+    - `WAVELMAX`, "", Optional
+    - `NUM_CHAN`, "", Optional
+    - `SPEC_RES`, "", Optional
+    - `HIERARCH NIFITS NULLERR`, "Representative null flux uncertainty (Jy)"
 
 ### Deprecation in version 0.1.0 :
 * `arrcol` is deprecated. use `col_ar` instead

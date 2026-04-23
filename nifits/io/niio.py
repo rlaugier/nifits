@@ -33,6 +33,7 @@ from dataclasses import dataclass, field
 # from numpy.typing import ArrayLike
 # A hack to fix the documentation of type hinting
 import numpy.typing
+from copy import copy, deepcopy
 ArrayLike = np.typing.ArrayLike
 
 
@@ -49,6 +50,7 @@ def __standard_version_int__():
     """
     ver_list = __standard_version__.split(".")
     return np.int16(ver_list[0]), np.int16(ver_list[1])
+
 def __version_int__():
     """
     Returns the nifits standard version as a tuple
@@ -247,12 +249,19 @@ def nulfunc(self, *args, **kwargs):
 
 
 NI_NIFITS_DEFAULT_HEADER = fits.Header(cards=[
+    ("SIMPLE", True, "conforms to FITS standard"),
+    ("BITPIX", 8, "Number of bits per data pixel"),
+    ("NAXIS", 0, "Number of data axes"),
+    ("EXTEND", True, "Extensions may be present"),
+    ("ORIGIN", "generic institution", "Institution responsible of file creation"),
+    ("DATE", Time.now().isot , "Start date of observation"),
+    ("DATE-OBS", Time.now().isot , "Start date of observation"),
+    ("CONTENT", "NIFITS", "This is a NIFITS file"),
     ("TELESCOP", "generic array", "A generic identification of the array"),
     ("INSTRUME", "generic instrument", "A generic identification of the instrument"),
     ("OBSERVER", "generic observer", "Who acquired the data"),
     ("OBJECT", "generic object" , "Object identifier"),
     ("INSMODE", "generic mode" , "Instrument mode"),
-    ("HIERARCH NIFITS INSTRUMENT", "generic", "Name of the instrument, for cross referencing."),
     ("HIERARCH NIFITS NI_RMAJ", __standard_version_int__()[0], "Major version number of nifits standard (int)"),
     ("HIERARCH NIFITS NI_RMIN", __standard_version_int__()[1], "Minor version number of nifits standard (int)"),
     ("HIERARCH NIFITS LIB_NAME", __package__, "Name of the sofware library used to write the file, optional (str)"),
@@ -264,21 +273,21 @@ NI_NIFITS_OPTIONAL_KEYWORDS = fits.Header(cards=[
     ("PROG_ID", "generic program", "Program ID"),
     ("PROCSOFT", "generic red. software", "Versioned data reduction software"),
     ("OBSTECH", "nulling", "Technique of observation"),
-    ("RA", float(0.0), "Target Right Ascension at mean EQUINOX (deg)"),
-    ("DEC", float(0.0), "Target Declination at mean EQUINOX (deg)"),
-    ("EQUINOX", 2000.0, "Standard FK5 (years)"),
+    ("RA", np.float64(0.0), "Target Right Ascension at mean EQUINOX (deg)"),
+    ("DEC", np.float64(0.0), "Target Declination at mean EQUINOX (deg)"),
+    ("EQUINOX", np.float64(2000.0), "Standard FK5 (years)"),
     ("RADECSYS", "FK5", "Coordinate reference frame"),
     ("SPECSYS", "TOPOCENTR", "Reference frame for spectral coord" ),
-    ("TEXPTIME", float(0.0), "Maximum elapsed time for data point"),
-    ("MJD-OBS", float(0.0), "Start of observation (MJD)"),
-    ("MJD-END", float(0.0), "End of observation (MJD)"),
-    ("BASE_MIN", float(0.0), "Minimum projected Baseline"),
-    ("BASE_MAX", float(0.0), "Maximum projected Baseline"),
-    ("WAVELMIN", float(0.0), "Minimum wavelength (nm)"),
-    ("WAVELMAX", float(0.0), "Maximum wavelength (nm)"),
+    ("TEXPTIME", np.float64(0.0), "Maximum elapsed time for data point"),
+    ("MJD-OBS", np.float64(0.0), "Start of observation (MJD)"),
+    ("MJD-END", np.float64(0.0), "End of observation (MJD)"),
+    ("BASE_MIN", np.float64(0.0), "Minimum projected Baseline"),
+    ("BASE_MAX", np.float64(0.0), "Maximum projected Baseline"),
+    ("WAVELMIN", np.float64(0.0), "Minimum wavelength (nm)"),
+    ("WAVELMAX", np.float64(0.0), "Maximum wavelength (nm)"),
     ("NUM_CHAN", 0, "Total number of spectral channels"),
-    ("SPEC_RES", float(0.0), "Reference spectral resolution"),
-    ("NULLERR", float(0.0), "Representative null flux uncertainty")
+    ("SPEC_RES", np.float64(0.0), "Reference spectral resolution"),
+    ("NULLERR", np.float64(0.0), "Representative null flux uncertainty")
 
 ])
 
@@ -288,7 +297,6 @@ OI_WAVELENGTH_DEFAULT_HEADER = fits.Header(cards=[
 ])
 OI_TARGET_DEFAULT_HEADER = fits.Header(cards=[
     ("OI_REVN", np.int16(2), "Revision number for extensions relying on OIFITS"),
-    ("TARGET_ID", np.int16(1), "Target id for cross-referencing. >= 1")
 ])
 
 NI_IOTAG_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS IOSWAPS", False, "The units for output values")])
@@ -315,21 +323,21 @@ VLTI:     1946404.3410388362, -5467644.290798524, -2642728.2014442487
 CHARA:    -2484228.6029109913, -4660044.467216573, 3567867.961141405
 """
 OI_ARRAY_DEFAULT_VLTI_HEADER = fits.Header(cards=[
-    ("OI_REVN", 1, "Revision number of the table definition (refers no OIFITS version, not NIFITS)."),
+    ("OI_REVN", np.int16(1), "Revision number of the table definition (refers no OIFITS version, not NIFITS)."),
     ("ARRNAME", "VLTI", "Array name, for cross-referencing"),
     ("FRAME", "GEOCENTRIC", "Coordinate frame"),
-    ("ARRAYX", 1946404.3410388362, "Array center coordinates (m)"),
-    ("ARRAYY", -5467644.290798524, "Array center coordinates (m)"),
-    ("ARRAYZ", -2642728.2014442487, "Array center coordinates (m)"),
+    ("ARRAYX", np.float64(1946404.3410388362), "Array center coordinates (m)"),
+    ("ARRAYY", np.float64(-5467644.290798524), "Array center coordinates (m)"),
+    ("ARRAYZ", np.float64(-2642728.2014442487), "Array center coordinates (m)"),
 ])
     
 OI_ARRAY_DEFAULT_CHARA_HEADER = fits.Header(cards=[
-    ("OI_REVN", 1, "Revision number of the table definition (refers no OIFITS version, not NIFITS)."),
+    ("OI_REVN", np.int16(1), "Revision number of the table definition (refers no OIFITS version, not NIFITS)."),
     ("ARRNAME", "CHARA", "Array name, for cross-referencing"),
     ("FRAME", "GEOCENTRIC", "Coordinate frame"),
-    ("ARRAYX", -2484228.6029109913, "Array center coordinates (m)"),
-    ("ARRAYY", -4660044.467216573, "Array center coordinates (m)"),
-    ("ARRAYZ", 3567867.961141405, "Array center coordinates (m)"),
+    ("ARRAYX", np.float64(-2484228.6029109913), "Array center coordinates (m)"),
+    ("ARRAYY", np.float64(-4660044.467216573), "Array center coordinates (m)"),
+    ("ARRAYZ", np.float64(3567867.961141405), "Array center coordinates (m)"),
 ])
 
     
@@ -665,7 +673,8 @@ class OI_TARGET(NI_EXTENSION):
                                     float, str, str,
                                     float, float, float, float, 
                                     float, float, str, str ],)
-        return cls(data_table=data_table)
+        myheader = deepcopy(OI_TARGET_DEFAULT_HEADER)
+        return cls(data_table=data_table, header=myheader)
 
     def add_target(self, target_id=0, target="MyTarget", raep0=0., decep0=0.,
                         equinox=0., ra_err=0., dec_err=0.,
@@ -1407,6 +1416,9 @@ class nifits(object):
                     case "DATE-OBS":
                         timetobs = self.ni_mod.date_obs
                         self.header[akey] = timetobs
+                    case "DATE":
+                        date_modification = Time.now().isot
+                        self.header[akey] = date_modification
                     case "TELESCOP":
                         if verbose: print("Updating TELESCOP")
                         if hasattr(self, "ni_array"):
