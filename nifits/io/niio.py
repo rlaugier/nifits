@@ -22,26 +22,63 @@ import astropy.units as u
 import astropy.table
 Table = astropy.table.Table
 from astropy.coordinates import EarthLocation
+from astropy.time import Time
 import datetime
 import warnings
 from packaging import version
+from . import utils
 
 import sys
 from dataclasses import dataclass, field
 # from numpy.typing import ArrayLike
 # A hack to fix the documentation of type hinting
 import numpy.typing
+from copy import copy, deepcopy
 ArrayLike = np.typing.ArrayLike
 
 
-__version__ = "0.0.10"
-__standard_version__ = "0.8"
+
+__version__ = "0.1.0"
+__standard_version__ = "1.0"
+
+EXTENSION_INCLUDED = "Included"
+
+def __standard_version_int__():
+    """
+    Returns the nifits standard version as a pair
+    of integers (based on `__standard_version__` string).
+    """
+    ver_list = __standard_version__.split(".")
+    return np.int16(ver_list[0]), np.int16(ver_list[1])
+
+def __version_int__():
+    """
+    Returns the nifits standard version as a tuple
+    of three integers based on `__version__` string.
+    """
+    ver_list = __version__.split(".")
+    return int(ver_list[0]), int(ver_list[1]), int(ver_list[2])
 
 _mjdzero = datetime.datetime(1858, 11, 17)
+t0 = Time(val=0., format="mjd")
+t0.format = "isot"
 
 matchtargetbyname = False
 matchstationbyname = False
 refdate = datetime.datetime(2000, 1, 1)
+
+SUBS_V1 = [
+    ("ARRCOL", "COL_AR"),
+    ("APPXY", "AP_XY"),
+    ("value", "VALUE"),
+    ("offsets", "OFFSETS"),
+]
+SUBS_V1_0to1 = {}
+SUBS_V1_1to0 = {}
+for asub in SUBS_V1:
+    SUBS_V1_0to1[asub[0]] = asub[1]
+    SUBS_V1_1to0[asub[1]] = asub[0]
+    
 
 
 import warnings
@@ -49,7 +86,8 @@ def check_item(func):
     """
     A decorator for the `fits.Header.__getitem__`.
     This is here to save from compatibility issues with files of
-    standard version <= 0.2 while warning that that this version will 
+    standard version <= 0.2 while warning that that this version will
+    fail past 0.1.0
     """
     def inner(*args, **kwargs):
         good_kw = True
@@ -150,7 +188,7 @@ class OI_STATION(object):
             (self.tel_name != other.tel_name) or
             (self.sta_name != other.sta_name) or
             (self.diameter != other.diameter) or
-            (not _array_eq(self.staxyz, other.staxyz)) or
+            (not array_eq(self.staxyz, other.staxyz)) or
             (self.fov != other.fov) or
             (self.fovtype != other.fovtype))
 
@@ -209,16 +247,67 @@ def nulfunc(self, *args, **kwargs):
     raise TypeError
 
 
-NI_OITAG_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS IOSWAPS", False, "The units for output values")])
+
+NI_NIFITS_DEFAULT_HEADER = fits.Header(cards=[
+    ("SIMPLE", True, "conforms to FITS standard"),
+    ("BITPIX", 8, "Number of bits per data pixel"),
+    ("NAXIS", 0, "Number of data axes"),
+    ("EXTEND", True, "Extensions may be present"),
+    ("ORIGIN", "generic institution", "Institution responsible of file creation"),
+    ("DATE", Time.now().isot , "Start date of observation"),
+    ("DATE-OBS", Time.now().isot , "Start date of observation"),
+    ("CONTENT", "NIFITS", "This is a NIFITS file"),
+    ("TELESCOP", "generic array", "A generic identification of the array"),
+    ("INSTRUME", "generic instrument", "A generic identification of the instrument"),
+    ("OBSERVER", "generic observer", "Who acquired the data"),
+    ("OBJECT", "generic object" , "Object identifier"),
+    ("INSMODE", "generic mode" , "Instrument mode"),
+    ("HIERARCH NIFITS NI_RMAJ", __standard_version_int__()[0], "Major version number of nifits standard (int)"),
+    ("HIERARCH NIFITS NI_RMIN", __standard_version_int__()[1], "Minor version number of nifits standard (int)"),
+    ("HIERARCH NIFITS LIB_NAME", __package__, "Name of the sofware library used to write the file, optional (str)"),
+    ("HIERARCH NIFITS LIB_REV", __version__, "Version of the software library used to write the file, optional (str) ")
+])
+
+NI_NIFITS_OPTIONAL_KEYWORDS = fits.Header(cards=[
+    ("REFERENC", "", "Bibliographic reference"),
+    ("PROG_ID", "generic program", "Program ID"),
+    ("PROCSOFT", "generic red. software", "Versioned data reduction software"),
+    ("OBSTECH", "nulling", "Technique of observation"),
+    ("RA", np.float64(0.0), "Target Right Ascension at mean EQUINOX (deg)"),
+    ("DEC", np.float64(0.0), "Target Declination at mean EQUINOX (deg)"),
+    ("EQUINOX", np.float64(2000.0), "Standard FK5 (years)"),
+    ("RADECSYS", "FK5", "Coordinate reference frame"),
+    ("SPECSYS", "TOPOCENTR", "Reference frame for spectral coord" ),
+    ("TEXPTIME", np.float64(0.0), "Maximum elapsed time for data point"),
+    ("MJD-OBS", np.float64(0.0), "Start of observation (MJD)"),
+    ("MJD-END", np.float64(0.0), "End of observation (MJD)"),
+    ("BASE_MIN", np.float64(0.0), "Minimum projected Baseline"),
+    ("BASE_MAX", np.float64(0.0), "Maximum projected Baseline"),
+    ("WAVELMIN", np.float64(0.0), "Minimum wavelength (nm)"),
+    ("WAVELMAX", np.float64(0.0), "Maximum wavelength (nm)"),
+    ("NUM_CHAN", 0, "Total number of spectral channels"),
+    ("SPEC_RES", np.float64(0.0), "Reference spectral resolution"),
+    ("NULLERR", np.float64(0.0), "Representative null flux uncertainty")
+
+])
+
+OI_WAVELENGTH_DEFAULT_HEADER = fits.Header(cards=[
+    ("OI_REVN", np.int16(2), "Revision number for extensions relying on OIFITS"),
+    ("INSNAME", "generic", "Name of instrument, for cross-referencing" )
+])
+OI_TARGET_DEFAULT_HEADER = fits.Header(cards=[
+    ("OI_REVN", np.int16(2), "Revision number for extensions relying on OIFITS"),
+])
+
+NI_IOTAG_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS IOSWAPS", False, "The units for output values")])
 
 NI_MOD_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS AMOD_PHAS_UNITS", "rad", "The units for modulation phasors"),
-                                        ("HIERARCH NIFITS ARRCOL_UNITS", "m^2", "The units for collecting area")
+                                        ("HIERARCH NIFITS COL_AR_UNITS", "m^2", "The units for collecting area")
                                             ])
 
 # Possible to use "chromatic_gaussian_radial", "diameter_gaussian_radial".
 # Simplest default is a gaussian with r0 = lambda/D
 NI_FOV_DEFAULT_HEADER = fits.Header(cards=[("HIERARCH NIFITS FOV_MODE","diameter_gaussian_radial","Type of FOV definition"),
-                                        ("HIERARCH NIFITS FOV_offset"),
                                         ("HIERARCH NIFITS FOV_TELDIAM", 8.0, "diameter of a collecting aperture for FOV"),
                                         ("HIERARCH NIFITS FOV_TELDIAM_UNIT", "m", ""),])
 
@@ -234,21 +323,21 @@ VLTI:     1946404.3410388362, -5467644.290798524, -2642728.2014442487
 CHARA:    -2484228.6029109913, -4660044.467216573, 3567867.961141405
 """
 OI_ARRAY_DEFAULT_VLTI_HEADER = fits.Header(cards=[
-    ("OI_REVN", 1, "Revision number of the table definition (refers no OIFITS version, not NIFITS)."),
+    ("OI_REVN", np.int16(1), "Revision number of the table definition (refers no OIFITS version, not NIFITS)."),
     ("ARRNAME", "VLTI", "Array name, for cross-referencing"),
     ("FRAME", "GEOCENTRIC", "Coordinate frame"),
-    ("ARRAYX", 1946404.3410388362, "Array center coordinates (m)"),
-    ("ARRAYY", -5467644.290798524, "Array center coordinates (m)"),
-    ("ARRAYZ", -2642728.2014442487, "Array center coordinates (m)"),
+    ("ARRAYX", np.float64(1946404.3410388362), "Array center coordinates (m)"),
+    ("ARRAYY", np.float64(-5467644.290798524), "Array center coordinates (m)"),
+    ("ARRAYZ", np.float64(-2642728.2014442487), "Array center coordinates (m)"),
 ])
     
 OI_ARRAY_DEFAULT_CHARA_HEADER = fits.Header(cards=[
-    ("OI_REVN", 1, "Revision number of the table definition (refers no OIFITS version, not NIFITS)."),
+    ("OI_REVN", np.int16(1), "Revision number of the table definition (refers no OIFITS version, not NIFITS)."),
     ("ARRNAME", "CHARA", "Array name, for cross-referencing"),
     ("FRAME", "GEOCENTRIC", "Coordinate frame"),
-    ("ARRAYX", -2484228.6029109913, "Array center coordinates (m)"),
-    ("ARRAYY", -4660044.467216573, "Array center coordinates (m)"),
-    ("ARRAYZ", 3567867.961141405, "Array center coordinates (m)"),
+    ("ARRAYX", np.float64(-2484228.6029109913), "Array center coordinates (m)"),
+    ("ARRAYY", np.float64(-4660044.467216573), "Array center coordinates (m)"),
+    ("ARRAYZ", np.float64(3567867.961141405), "Array center coordinates (m)"),
 ])
 
     
@@ -584,7 +673,9 @@ class OI_TARGET(NI_EXTENSION):
                                     float, str, str,
                                     float, float, float, float, 
                                     float, float, str, str ],)
-        return cls(data_table=data_table)
+        myheader = deepcopy(OI_TARGET_DEFAULT_HEADER)
+        return cls(data_table=data_table, header=myheader)
+
     def add_target(self, target_id=0, target="MyTarget", raep0=0., decep0=0.,
                         equinox=0., ra_err=0., dec_err=0.,
                         sysvel=0., veltyp="", veldef="",
@@ -643,7 +734,7 @@ class NI_IOUT(NI_EXTENSION):
     name = "NI_IOUT"
     @property
     def iout(self):
-        return self.data_table["value"].data
+        return self.data_table["VALUE"].data
     def set_unit(self, new_unit, comment=None):
         if comment is None:
             comment = "The unit of the raw output flux."
@@ -661,10 +752,10 @@ class NI_KIOUT(NI_EXTENSION):
     name = "NI_KIOUT"
     @property
     def kiout(self):
-        return self.data_table["value"].data
+        return self.data_table["VALUE"].data
     @property
     def shape(self):
-        return self.data_table["value"].data.shape
+        return self.data_table["VALUE"].data.shape
     def set_unit(self, new_unit, comment=None):
         if comment is None:
             comment = "The unit of the processed flux."
@@ -825,7 +916,7 @@ class NI_MOD(NI_EXTENSION):
        |               |                            |                  | subaperture       |
        |               |                            |                  | (starts at 0)     |
        +---------------+----------------------------+------------------+-------------------+
-       | ``TARGET_ID`` |  ``int``                   | d                | Index of target   |
+       | ``TARGET_ID`` |  ``int`` 16bit                     | d                | Index of target   |
        |               |                            |                  | in ``OI_TARGET``  |
        +---------------+----------------------------+------------------+-------------------+
        | ``TIME``      | ``float``                  | s                | Backwards         |
@@ -839,7 +930,7 @@ class NI_MOD(NI_EXTENSION):
        |               |                            |                  | modulation for    |
        |               |                            |                  | all collectors    |
        +---------------+----------------------------+------------------+-------------------+
-       | ``APPXY``     | ``n_a, 2`` ``float``       | m                | Projected         |
+       | ``AP_XY``     | ``n_a, 2`` ``float``       | m                | Projected         |
        |               |                            |                  | location of       |
        |               |                            |                  | subapertures in   |
        |               |                            |                  | the plane         |
@@ -849,7 +940,7 @@ class NI_MOD(NI_EXTENSION):
        |               |                            |                  | ``(               |
        |               |                            |                  | \alpha, \delta)`` |
        +---------------+----------------------------+------------------+-------------------+
-       | ``ARRCOL``    | ``n_a`` ``float``          | ``\mathrm{m}^2`` | Collecting area   |
+       | ``COL_AR``    | ``n_a`` ``float``          | ``\mathrm{m}^2`` | Collecting area   |
        |               |                            |                  | of the            |
        |               |                            |                  | subaperture       |
        +---------------+----------------------------+------------------+-------------------+
@@ -874,8 +965,16 @@ class NI_MOD(NI_EXTENSION):
 
     @property
     def appxy(self):
+        """DEPRECATED Shape n_frames x n_a x 2
+        use `ap_xy` instead
+        """
+        raise DeprecationWarning("Handle appxy is deprecated since version 0.1.0. Use `ap_xy` instead")
+        return self.ap_xy
+
+    @property
+    def ap_xy(self):
         """Shape n_frames x n_a x 2"""
-        return self.data_table["APPXY"].data.astype(float)
+        return self.data_table["AP_XY"].data.astype(float)
 
     @property
     def dateobs(self):
@@ -888,11 +987,51 @@ class NI_MOD(NI_EXTENSION):
         return None
 
     @property
+    def mjd_obs(self):
+        """
+            Get the start mjd.
+        """
+        mjd_array = self.data_table["MJD"].data
+        start_mjd = np.nanmin(mjd_array)
+        return start_mjd
+
+    @property
+    def mjd_end(self):
+        """
+            Get the end mjd
+        """
+        mjd_array = self.data_table["MJD"].data
+        end_mjd = np.nanmax(mjd_array)
+        return end_mjd
+
+    @property
+    def date_obs(self):
+        """
+            Get the start ISOT.
+        """
+        date = Time(val=self.mjd_obs, format="mjd")
+        return date.isot
+
+    @property
+    def date_end(self):
+        date_end = Time(val=self.mjd_end, format="mjd")
+        return date_end.isot
+        
+
+    @property
     def arrcol(self):
         """
         The collecting area of the telescopes
         """
-        return self.data_table["ARRCOL"].data
+        raise DeprecationWarning("Handle arrcol is deprecated since version 0.1.0. Use `col_ar` instead")
+        return self.col_ar
+
+    @property
+    def col_ar(self):
+        """
+        The collecting area of the telescopes
+        """
+        return self.data_table["COL_AR"].data
 
     @property
     def int_time(self):
@@ -923,7 +1062,7 @@ def create_basic_fov_data(D, offset, lamb, n):
         return phasor.astype(complex)
     all_offsets = np.zeros((n, lamb.shape[0], 2))
     indices = np.arange(n)
-    mytable = Table(names=["INDEX", "offsets"],
+    mytable = Table(names=["INDEX", "OFFSETS"],
                     data=[indices, all_offsets])
     return mytable, xy2phasor
 
@@ -974,7 +1113,7 @@ class NI_FOV(NI_EXTENSION):
             
             * Mode: {mode}
             * Telescope diameter {mydiam} {mydiam_unit}
-            * offsets : {self.data_table["offsets"]}
+            * OFFSETS : {self.data_table["OFFSETS"]}
 
             """
             return myinfostring
@@ -990,14 +1129,14 @@ class NI_FOV(NI_EXTENSION):
 #     in NI_CATM. It is recommended to include in CATM the static effects and in
 #     NI_MOD any affect that may vary throughout the observing run."""
 #     def __init__(self, app_index, target_id, time, mjd,
-#                 int_time, mod_phas, app_xy, arrcol,
+#                 int_time, mod_phas, ap_xy, arrcol,
 #                 fov_index):
 #         self.app_index = app_index
 #         self.target_id = target_id
 #         self.time = time
 #         self.mjd = mjd
 #         self.int_time = int_time
-#         self.app_xy = app_xy
+#         self.ap_xy = ap_xy
 #         self.arrcol = arrcol
 #         self.fov_index = fov_index
 #         self.mod_phas = mod_phas
@@ -1082,12 +1221,22 @@ class nifits(object):
         print("contains_header:", obj_dict.__contains__("header"))
         return cls(**obj_dict)
 
+    def get_version(self, string=False):
+        mav = self.header["HIERARCH NIFITS NI_RMAJ"]
+        miv = self.header["HIERARCH NIFITS NI_RMIN"]
+        if string:
+            return f"{mav}.{miv}"
+        else:
+            return mav, miv
+        
+
     def to_nifits(self, filename:str = "",
                         static_only: bool = False,
                         dynamic_only: bool = False,
                         static_hash: str = "",
                         writefile: bool = True,
-                        overwrite: bool = False):
+                        overwrite: bool = False,
+                        checksum: bool = True):
         """
         Write the extension objects to a nifits file.
 
@@ -1100,12 +1249,11 @@ class nifits(object):
                           Defaultult: False
             static_hash : (str) The hash of the static file.
                         Default: ""
+            checksum : (bool) include checksum.
 
         """
         # TODO: Possibly, the static_hash should be a dictionary with
         # a hash for each extension
-        self.header["HIERARCH NIFITS VERSION"] = (__standard_version__,
-                            f"Writen with rlaugier/nifits v{__version__}")
         
         hdulist = fits.HDUList()
         hdu = fits.PrimaryHDU()
@@ -1135,38 +1283,255 @@ class nifits(object):
                 print(f"Warning: Could not find the {anext} object")
         print(hdu.header)
         if writefile:
-            hdulist.writeto(filename, overwrite=overwrite)
+            hdulist.writeto(filename, overwrite=overwrite, checksum=checksum)
             return hdulist
         else:
             return hdulist
 
-    def check_unit_coherence(self):
+    def extension_objects(self, check=True):
+        """
+            Get a lits of the nifits extensions in this object.
+        
+        Returns:
+            extensions : a list of the extension objects of the file.
+        """
+        extensions  = []
+        for anext in NIFITS_EXTENSIONS:
+            if hasattr(self, anext.lower()):
+                theext = getattr(self, anext.lower())
+                header_info = self.header[f"HIERARCH NIFITS {anext}"]
+                if check:
+                    if header_info != "Included":
+                        assert theext is None, "Extension supposedly missing but found"
+                    else:
+                        assert theext is not None, "Extension supposedly present but missing"
+                        myclass = getclass(anext)
+                        assert type(theext) is myclass, "Wrong extension type"
+                            
+                extensions.append(theext)
+        return extensions
+
+    def check_unit_coherence(self, verbose=True):
         """
             Check the coherence of the units of and prints the result
         NI_IOUT, NI_KCOV, and NI_KIOUT if they exist.
 
         Otherwise, does nothing.
         """
+        no_data = True
         if hasattr(self, "ni_iout"):
-            print("NI_IOUT", self.ni_iout.unit)
+            no_data = False
+            if verbose:
+                print("NI_IOUT", self.ni_iout.unit)
         else:
-            print("No NI_IOUT")
+            if verbose:
+                print("No NI_IOUT")
         if hasattr(self, "ni_kiout"):
-            print("NI_KIOUT", self.ni_kiout.unit)
+            no_data = False
+            if verbose:
+                print("NI_KIOUT", self.ni_kiout.unit)
         else:
-            print("No NI_KIOUT")
+            if verbose:
+                print("No NI_KIOUT")
         if hasattr(self, "ni_kcov"):
-            print("NI_KCOV", self.ni_kcov.unit)
+            no_data = False
+            if verbose:
+                print("NI_KCOV", self.ni_kcov.unit)
         else:
-            print("No NI_KCOV")
-            
-        if hasattr(self, "ni_iout") and hasattr(self, "ni_kiout"):
-            print(self.ni_iout.unit.is_equivalent(self.ni_kiout.unit))
-        if hasattr(self, "ni_kcov") and hasattr(self, "ni_kiout"):
-            print(np.sqrt(self.ni_kcov.unit).is_equivalent(self.ni_kiout.unit))
-        if hasattr(self, "ni_kcov") and hasattr(self, "ni_iout"):
-            print(np.sqrt(self.ni_kcov.unit).is_equivalent(self.ni_iout.unit))
+            if verbose:
+                print("No NI_KCOV")
 
+        consistent = True
+        if hasattr(self, "ni_iout") and hasattr(self, "ni_kiout"):
+            check = self.ni_iout.unit.is_equivalent(self.ni_kiout.unit)
+            if verbose:
+                print(f"iout-kiout consistent {check}")
+            if not check:
+                consistent = False
+        if hasattr(self, "ni_kcov") and hasattr(self, "ni_kiout"):
+            check = self.ni_kcov.unit.is_equivalent(self.ni_kiout.unit**2)
+            if verbose:
+                print("kcov-kiout consistent {check}")
+            if not check:
+                consistent = False
+        if hasattr(self, "ni_kcov") and hasattr(self, "ni_iout"):
+            check = self.ni_kcov.unit.is_equivalent(self.ni_iout.unit**2)
+            if verbose:
+                print(f"kcov-iout consistent {check}")
+            if not check:
+                consistent = False
+        if verbose:
+            print(f"Consistent data : {consistent}")
+        return consistent
+    
+    def refresh_primary_header(self, all=False, verbose=True,
+                                **kwargs):
+        """
+        Args:
+            `all` : `Bool` (False) If Force the update of all relevent keywords.
+            Exceptions:
+            * `MJD-OBS` is designated `MJD_OBS`
+            * `MJD-END` is designated `MJD_END`
+            * `BASE`
+
+        Options : 
+            * True : Force the update of the keyword
+            * None : Only update if centent contains `generic`
+              for strings, NaN for floats or 0 for int.
+            * False : Do not update.
+    
+        """
+        keywords = {
+            "DATE_OBS": "DATE-OBS",
+            "TELESCOP": "TELESCOP",
+            "INSTRUME": "INSTRUME",
+            "OBJECT": "OBJECT",
+            "RA": "RA",
+            "DEC": "DEC",
+            "EQUINOX": "EQUINOX",
+            "RADECSYS": "RADECSYS",
+            "TEXPTIME": "TEXPTIME",
+            "MJD_OBS": "MJD-OBS",
+            "MJD_END": "MJD-END",
+            "BASE_MIN": "BASE_MIN",
+            "BASE_MAX": "BASE_MAX",
+            "WAVELMIN": "WAVELMIN",
+            "WAVELMAX": "WAVELMAX",
+            "NUM_CHAN": "NUM_CHAN",
+            "SPEC_RES": "SPEC_RES",
+            "NULL_ERR": "NULL_ERR",
+        }
+        for akw, akey in keywords.items():
+            update = False
+            if akw in kwargs:
+                if kwargs[akw] is False:
+                    pass
+            elif akw in kwargs:
+                if kwargs[akw] is True:
+                    update = True
+            elif all is True:
+                update = True
+            if update :
+                match akey:
+                    case "DATE-OBS":
+                        timetobs = self.ni_mod.date_obs
+                        self.header[akey] = timetobs
+                    case "DATE":
+                        date_modification = Time.now().isot
+                        self.header[akey] = date_modification
+                    case "TELESCOP":
+                        if verbose: print("Updating TELESCOP")
+                        if hasattr(self, "ni_array"):
+                            if self.ni_array is not None:
+                                if "ARRNAME" in self.ni_array.header:
+                                    arrayname = self.oi_array.header["ARRNAME"]
+                                    self.header[akey] = arrayname
+                                    if verbose: print(f"Updated {akey}")
+                    case "INSTRUME":
+                        if verbose: print("No instrument information stored")
+                        pass
+                    
+                    case "OBJECT":
+                        if verbose: print("Updating OBJECT")
+                        if hasattr(self, "oi_target"):
+                            if self.oi_target is not None:
+                                mytarg = self.oi_target.data_table["TARGET"].data[0]
+                                self.header[akey] = mytarg
+                    case "RA":
+                        if verbose: print("Updating RA")
+                        if hasattr(self, "oi_target"):
+                            if self.oi_target is not None:
+                                myres = self.oi_target.data_table["RAEP0"].data[0]
+                                self.header[akey] = myres
+                    case "DEC":
+                        if verbose: print("Updating DEC")
+                        if hasattr(self, "oi_target"):
+                            if self.oi_target is not None:
+                                myres = self.oi_target.data_table["DECEP0"].data[0]
+                                self.header[akey] = myres
+                    case "EQUINOX":
+                        if verbose: print("Updating EQUINOX")
+                        if hasattr(self, "oi_target"):
+                            if self.oi_target is not None:
+                                myres = self.oi_target.data_table["EQUINOX"].data[0]
+                                self.header[akey] = myres
+                    case "RADECSYS":
+                        pass
+                    case "TEXPTIME":
+                        if verbose: print("Updating EXPTIME")
+                        if hasattr(self, "ni_mod"):
+                            if self.ni_mod is not None:
+                                myres = self.ni_mod.int_time
+                                self.header[akey] = np.nanmax(myres)
+                                if verbose: print("Updated with max of INT_TIME (for consistency with oifits2.)")
+                    case "MJD-OBS":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "ni_mod"):
+                            if self.ni_mod is not None:
+                                mjdobs = self.ni_mod.mjd_obs
+                                self.header[akey] = mjdobs
+                    case "MJD-END":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "ni_mod"):
+                            if self.ni_mod is not None:
+                                mjdend = self.ni_mod.mjd_end
+                                self.header[akey] = mjdend
+                    case "BASE_MIN":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "ni_mod"):
+                            if self.ni_mod is not None:
+                                locs = self.ni_mod.ap_xy
+                                alluv = []
+                                for aloc in locs:
+                                    uv, dump = utils.get_uv(aloc)
+                                    alluv.append(uv)
+                                alluv = np.array(alluv)
+                                flatuv = alluv.reshape((-1,2))
+                                ls = np.hypot(*flatuv.T)
+                                self.header[akey] = np.min(ls)
+                    case "BASE_MAX":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "ni_mod"):
+                            if self.ni_mod is not None:
+                                alluv = []
+                                for aloc in locs:
+                                    uv, dump = utils.get_uv(aloc)
+                                    alluv.append(uv)
+                                alluv = np.array(alluv)
+                                flatuv = alluv.reshape((-1,2))
+                                ls = np.hypot(*flatuv.T)
+                                self.header[akey] = np.max(ls)
+                    case "WAVELMIN":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "oi_wavelength"):
+                            if self.oi_wavelength is not None:
+                                wls_m = self.oi_wavelength.lambs
+                                wls = wls_m * u.m.to(u.nm)
+                                self.header[akey] = np.min(wls)
+                    case "WAVELMAX":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "oi_wavelength"):
+                            if self.oi_wavelength is not None:
+                                wls_m = self.oi_wavelength.lambs
+                                wls = wls_m * u.m.to(u.nm)
+                                self.header[akey] = np.max(wls)
+                    case "NUM_CHAN":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "oi_wavelength"):
+                            if self.oi_wavelength is not None:
+                                wls = self.oi_wavelength.lambs
+                                self.header[akey] = wls.shape[0]
+                    case "SPEC_RES":
+                        if verbose: print(f"Updating {akey}")
+                        if hasattr(self, "oi_wavelength"):
+                            if self.oi_wavelength is not None:
+                                lambs = self.oi_wavelength.lambs
+                                dlambs = self.oi_wavelength.dlambs
+                                r = np.mean(lambs) / np.mean(dlambs)
+                                self.header[akey] = r
+                    case "NULL_ERR":
+                        if verbose: print(f"Updating {akey}")
+                        print("NotImplemented : Must convert the kcov into Jy")
 
 
 

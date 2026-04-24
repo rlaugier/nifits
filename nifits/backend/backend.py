@@ -19,8 +19,9 @@ import numpy as np
 from numpy import einsum as neweinsum
 # from einsum_bmm.einsum_bmm import einsum as neweinsum
 
-from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
-from nifits.io.oifits import nifits as NIFITSClass
+from nifits.io.niio import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
+from nifits.io.niio import nifits as NIFITSClass
+from nifits.io.niio import __version__, __version_int__, __standard_version__, __standard_version_int__
 
 ModuleType = types.ModuleType
 
@@ -344,7 +345,7 @@ class NI_Backend(object):
 
     """
 
-    # def __init__(self, myfits: type(io.oifits.NIFITS)):
+    # def __init__(self, myfits: type(io.nifits.NIFITS)):
     def __init__(self, nifits: NIFITSClass = None,
                  module=np):
         self.nifits = nifits
@@ -433,7 +434,7 @@ class NI_Backend(object):
              * units.Unit(self.nifits.ni_fov.header["NIFITS FOV_TELDIAM_UNIT"])) \
             .to(units.m).value
         r_0 = ( self.nifits.oi_wavelength.lambs / D)  # *units.rad.to(units.mas)
-        offset = md.array(self.nifits.ni_fov.data_table["offsets"])
+        offset = md.array(self.nifits.ni_fov.data_table["OFFSETS"])
 
         def xy2phasor(x, y, md=md):
             """
@@ -480,7 +481,7 @@ class NI_Backend(object):
         """
         # mods = md.array([a  for a in self.nifits.ni_mod.phasors]).T
         mods = md.array(self.nifits.ni_mod.all_phasors)
-        col_area = md.array(self.nifits.ni_mod.arrcol)
+        col_area = md.array(self.nifits.ni_mod.col_ar)
         return mods * md.sqrt(col_area)[:, None, :]
 
     def geometric_phasor(self, alpha, beta, include_mod=False,
@@ -498,7 +499,7 @@ class NI_Backend(object):
         Returns:
             A vector of complex phasors
         """
-        xy_array = self.nifits.ni_mod.appxy
+        xy_array = self.nifits.ni_mod.ap_xy
         lambs = md.array(self.nifits.oi_wavelength.lambs)
         k = 2 * md.pi / lambs
         a = md.array((alpha, beta), dtype=md.float64)
@@ -604,7 +605,7 @@ class NI_Backend(object):
         **Returns** : A vector of complex phasors
 
         """
-        xy_array = md.array(self.nifits.ni_mod.appxy)
+        xy_array = md.array(self.nifits.ni_mod.ap_xy)
         lambs = md.array(self.nifits.oi_wavelength.lambs)
         k = 2 * md.pi / lambs
         a = md.array((alphas, betas), dtype=md.float64)
@@ -692,13 +693,13 @@ class NI_Backend(object):
         import matplotlib.pyplot as plt
         from scipy.interpolate import griddata
         if outputs is None:
-            n_subplots = self.nifits.ni_iout.data_table["value"].shape[2]
+            n_subplots = self.nifits.ni_iout.data_table["VALUE"].shape[2]
             output_names = [f"Output {i}" for i in range(n_subplots)]
         else:
             n_subplots = len(outputs)
             output_names = [f"Output {i}" for i in outputs]
-        n_frames = self.nifits.ni_iout.data_table["value"].shape[0]
-        n_wls = self.nifits.ni_iout.data_table["value"].shape[1]
+        n_frames = self.nifits.ni_iout.data_table["VALUE"].shape[0]
+        n_wls = self.nifits.ni_iout.data_table["VALUE"].shape[1]
         if nrows_ncols is None:
             test_ncols = n_subplots // 2
             if test_ncols > 4:
@@ -720,10 +721,10 @@ class NI_Backend(object):
         points = points.reshape((2, -1)).T
         # points = points.transpose(1,2,0)
         # print("points", points.shape)
-        # print("data", np.array(self.nifits.ni_iout.data_table["value"]).shape)
+        # print("data", np.array(self.nifits.ni_iout.data_table["VALUE"]).shape)
 
         for i in range(n_subplots):
-            thevals = self.nifits.ni_iout.data_table["value"][:, :, i]
+            thevals = self.nifits.ni_iout.data_table["VALUE"][:, :, i]
             thevals = thevals.T.flatten()
             # print("thevals", thevals.shape)
             # print("points", points.shape)
@@ -731,7 +732,7 @@ class NI_Backend(object):
             # print(mygrid.shape)
             # print(np.min(mygrid), np.max(mygrid))
             plt.sca(axarr.flat[i])
-            # plt.imshow(self.nifits.ni_iout.data_table["value"][:,:,i])
+            # plt.imshow(self.nifits.ni_iout.data_table["VALUE"][:,:,i])
             plt.imshow(mygrid, cmap=cmap, extent=gridextent)
             plt.colorbar()
             plt.gca().set_aspect("auto")

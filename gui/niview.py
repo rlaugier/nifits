@@ -1,7 +1,7 @@
 
 import streamlit as st
 
-import nifits.io.oifits as io
+import nifits.io.niio as io
 import nifits.backend as be
 
 import numpy as np
@@ -28,6 +28,20 @@ def mod2cs(mod, scalor=40.):
     c = (np.angle(mod) + np.pi)/(2*np.pi)
     s = scalor * np.abs(mod)**2
     return c, s
+
+def check_version_and_upgrade(anifits):
+    """
+        A check for the file standard version.
+    WARNING: this will be deprecated
+    """
+    if "HIERARCH NIFITS NI_RMAJ" in anifits.header.keys:
+        a = anifits.header["HIERARCH NIFITS NI_RMAJ"] == 1
+    else:
+        raise DeprecationWarning("At some point, support for V0 files will stop.")
+        a = 0
+            
+    return a
+            
 
 file_in = st.file_uploader("Load a nifits file", type=["nifits"])
 if file_in is not None:
@@ -171,7 +185,7 @@ if file_in is not None:
                             skydown_view = st.checkbox("Looking down from target", value=False)
                             fig_array = plt.figure(figsize=(5,4), dpi=100)
                             main_x_label = "Aperture proj. position [m]"
-                            thearray = mynifits.ni_mod.appxy[frame_index]
+                            thearray = mynifits.ni_mod.ap_xy[frame_index]
                             for i, atelxy in enumerate(thearray):
                                 plt.scatter(*atelxy, s=100)
                             if skydown_view:

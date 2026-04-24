@@ -28,8 +28,8 @@ module becomes optional.
 
 # extra.py
 import nifits.io as io
-from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
-from nifits.io.oifits import nifits as NIFITSClass
+from nifits.io.niio import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
+from nifits.io.niio import nifits as NIFITSClass
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as units
@@ -596,7 +596,7 @@ class Converted_BB(object):
         return  raw_bb.to(raw_bb.unit.to_system(units.si)[0])
 
 from nifits.backend import PointCollection
-from nifits.io.oifits import OI_WAVELENGTH
+from nifits.io.niio import OI_WAVELENGTH
 
 class BaseSource(PointCollection):
     def __init__(self, samples: PointCollection,
@@ -873,7 +873,7 @@ def whitened_kiout(self):
         wout_full  : [ArrayLike] The resulting outputs with shape
                     (nframes, )
     """
-    data = self.data_table["value"].data
+    data = self.data_table["VALUE"].data
     full_shape = data.shape
     flat_full_shape = (full_shape[0], full_shape[1]*full_shape[2])
     flat_out = rearrange(data, "frame wavelength output -> frame (wavelength output)")

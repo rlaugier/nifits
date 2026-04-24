@@ -2,7 +2,7 @@ import unittest
 from copy import copy
 
 from nifits.backend.backend import NI_Backend
-from nifits.io.oifits import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
+from nifits.io.niio import NIFITS_EXTENSIONS, STATIC_EXTENSIONS
 from tests.base_nifits_test_case import BaseNIFITSTestCase
 
 

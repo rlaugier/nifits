@@ -1,4 +1,3 @@
 # from . import oifits
 # from nifits.io.oifits import *
-import nifits.io.oifits
-
+import nifits.io.niio

@@ -7832,7 +7832,7 @@ NI_MOD  :
        |               |                            |                  | modulation for    |
        |               |                            |                  | all collectors    |
        +---------------+----------------------------+------------------+-------------------+
-       | ``APPXY``     | ``n_a,2`` ``float``        | m                | Projected         |
+       | ``AP_XY``     | ``n_a,2`` ``float``        | m                | Projected         |
        |               |                            |                  | location of       |
        |               |                            |                  | subapertures in   |
        |               |                            |                  | the plane         |
@@ -7842,7 +7842,7 @@ NI_MOD  :
        |               |                            |                  | ``(               |
        |               |                            |                  | \alpha, \delta)`` |
        +---------------+----------------------------+------------------+-------------------+
-       | ``ARRCOL``    | ``n_a`` ``float``          | ``\mathrm{m}^2`` | Collecting area   |
+       | ``COL_AR``    | ``n_a`` ``float``          | ``\mathrm{m}^2`` | Collecting area   |
        |               |                            |                  | of the            |
        |               |                            |                  | subaperture       |
        +---------------+----------------------------+------------------+-------------------+
@@ -8124,7 +8124,7 @@ NI_IOTAGS  :
                    <span class="n">unit</span><span class="o">=</span><span class="s2">"s"</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 <span class="n">mod_phas</span>          <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">mod_phas</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"MOD_PHAS"</span><span class="p">,</span>
                    <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
-<span class="n">appxy</span>             <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">appxy</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"APPXY"</span><span class="p">,</span>
+<span class="n">appxy</span>             <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">appxy</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"AP_XY"</span><span class="p">,</span>
                    <span class="n">unit</span><span class="o">=</span><span class="s2">"m"</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
 <span class="n">arrcol</span>            <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">arrcol</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"ARRCOL"</span><span class="p">,</span>
                    <span class="n">unit</span><span class="o">=</span><span class="s2">"m^2"</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
@@ -8553,7 +8553,7 @@ HIERARCH NIFITS NI_IOTAGS = 'Included'                                          
 <td></td>
 </tr>
 <tr>
-<td style="text-align:center"><code>APPXY</code></td>
+<td style="text-align:center"><code>AP_XY</code></td>
 <td style="text-align:left">$n_a, 2 $ float</td>
 <td style="text-align:left">m</td>
 <td></td>
