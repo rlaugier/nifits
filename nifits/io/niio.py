@@ -916,7 +916,7 @@ class NI_MOD(NI_EXTENSION):
        |               |                            |                  | subaperture       |
        |               |                            |                  | (starts at 0)     |
        +---------------+----------------------------+------------------+-------------------+
-       | ``TARGET_ID`` |  ``int`` 16bit                     | d                | Index of target   |
+       | ``TARGET_ID`` |  ``int`` 16bit             | d                | Index of target   |
        |               |                            |                  | in ``OI_TARGET``  |
        +---------------+----------------------------+------------------+-------------------+
        | ``TIME``      | ``float``                  | s                | Backwards         |
@@ -1256,7 +1256,7 @@ class nifits(object):
         # a hash for each extension
         
         hdulist = fits.HDUList()
-        hdu = fits.PrimaryHDU()
+        hdu = fits.PrimaryHDU(header=self.header)
         if static_only:
             extension_list = NIFITS_EXTENSIONS[STATIC_EXTENSIONS]
         elif dynamic_only:
@@ -1372,7 +1372,6 @@ class nifits(object):
             Exceptions:
             * `MJD-OBS` is designated `MJD_OBS`
             * `MJD-END` is designated `MJD_END`
-            * `BASE`
 
         Options : 
             * True : Force the update of the keyword

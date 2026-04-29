@@ -51,6 +51,16 @@ if file_in is not None:
 
     # st.write(mynifits)
     with file_tab:
+        st.write("Primary header")
+        with st.expander("Primary"):
+            ahead = mynifits.header
+            all_lines = []
+            all_lines.append("| Keyword | Value | Comment |")
+            all_lines.append("|---|---|---|")
+            for akey in ahead.keys():
+                all_lines.append(f"| {akey} | {ahead[akey]} | {ahead.comments[akey]}|")
+            block = "\n".join(all_lines)
+            st.write(block)
         st.write("## Extensions: ")
         exitsting_extensions = []
         for anext in io.NIFITS_EXTENSIONS:
