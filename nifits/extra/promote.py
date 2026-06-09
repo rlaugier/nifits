@@ -39,7 +39,10 @@ def convert_object(mynifits, conversion_list=default_subs, keywords_list=default
             newnifits.header.append((akey, anitem))
         else:
             print(akey, "already exists")
-    newnifits.header["HIERARCH NIFITS NI_RMAJ"] = nifits.__standard_version_int__()[0]
-    newnifits.header["HIERARCH NIFITS NI_RMIN"] = nifits.__standard_version_int__()[1]
-    print(f"Version {newnifits.header["HIERARCH NIFITS NI_RMAJ"]}.{newnifits.header["HIERARCH NIFITS NI_RMIN"]}")
+    # newnifits.header["HIERARCH NIFITS NI_RMAJ"] = nifits.__standard_version_int__()[0]
+    # newnifits.header["HIERARCH NIFITS NI_RMIN"] = nifits.__standard_version_int__()[1]
+    # rmaj, rmin = newnifits.get_version(fix=True)
+    newnifits.header.append(("HIERARCH NIFITS NI_REV_MAJOR", nifits.__standard_version_int__()[0], "Major version number of nifits standard (int)"))
+    newnifits.header.append(("HIERARCH NIFITS NI_REV_MAJOR", nifits.__standard_version_int__()[1], "Major version number of nifits standard (int)"))
+    print(f"Version {newnifits.header["HIERARCH NIFITS NI_REV_MAJOR"]}.{newnifits.header["HIERARCH NIFITS NI_REV_MINOR"]}")
     return newnifits

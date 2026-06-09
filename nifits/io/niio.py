@@ -71,7 +71,7 @@ SUBS_V1 = [
     ("ARRCOL", "COL_AR"),
     ("APPXY", "AP_XY"),
     ("value", "VALUE"),
-    ("offsets", "OFFSETS"),
+    ("offsets", "OFFSETS")
 ]
 SUBS_V1_0to1 = {}
 SUBS_V1_1to0 = {}
@@ -262,8 +262,8 @@ NI_NIFITS_DEFAULT_HEADER = fits.Header(cards=[
     ("OBSERVER", "generic observer", "Who acquired the data"),
     ("OBJECT", "generic object" , "Object identifier"),
     ("INSMODE", "generic mode" , "Instrument mode"),
-    ("HIERARCH NIFITS NI_RMAJ", __standard_version_int__()[0], "Major version number of nifits standard (int)"),
-    ("HIERARCH NIFITS NI_RMIN", __standard_version_int__()[1], "Minor version number of nifits standard (int)"),
+    ("HIERARCH NIFITS NI_REV_MAJOR", __standard_version_int__()[0], "Major version number of nifits standard (int)"),
+    ("HIERARCH NIFITS NI_REV_MINOR", __standard_version_int__()[1], "Minor version number of nifits standard (int)"),
     ("HIERARCH NIFITS LIB_NAME", __package__, "Name of the sofware library used to write the file, optional (str)"),
     ("HIERARCH NIFITS LIB_REV", __version__, "Version of the software library used to write the file, optional (str) ")
 ])
@@ -1221,9 +1221,24 @@ class nifits(object):
         print("contains_header:", obj_dict.__contains__("header"))
         return cls(**obj_dict)
 
-    def get_version(self, string=False):
-        mav = self.header["HIERARCH NIFITS NI_RMAJ"]
-        miv = self.header["HIERARCH NIFITS NI_RMIN"]
+    def get_version(self, string=False, fix=False):
+        try:
+            mav = self.header["HIERARCH NIFITS NI_REV_MAJOR"]
+            miv = self.header["HIERARCH NIFITS NI_REV_MINOR"]
+        except KeyError:
+            print("Deprecated NI_RMAJ keyword, updating your keywords")
+            # mav = self.header["HIERARCH NIFITS NI_RMAJ"]
+            # miv = self.header["HIERARCH NIFITS NI_RMIN"]
+            if fix:
+                self.header.append(("HIERARCH NIFITS NI_REV_MAJOR", 1, "Major version number of nifits standard (int)"))
+                self.header.append(("HIERARCH NIFITS NI_REV_MAJOR", 0, "Major version number of nifits standard (int)"))
+                self.header.popitem("HIERARCH NIFITS NI_RMAJ")
+                self.header.popitem("HIERARCH NIFITS NI_RMIN")
+                mav = self.header["HIERARCH NIFITS NI_REV_MAJOR"]
+                miv = self.header["HIERARCH NIFITS NI_REV_MINOR"]
+            else:
+                mav = 0
+                miv = 0
         if string:
             return f"{mav}.{miv}"
         else:
