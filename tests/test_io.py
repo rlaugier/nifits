@@ -31,8 +31,8 @@ reference_header = {
     "NAXIS":( ANY_INT, True),
     "EXTEND":( (bool,), True),
     "INSTRUME":( (str,), True),
-    "HIERARCH NIFITS NI_RMAJ":( (np.int16,), True),
-    "HIERARCH NIFITS NI_RMIN":( (np.int16,), True),
+    "HIERARCH NIFITS NI_REV_MAJOR":( (np.int16,), True),
+    "HIERARCH NIFITS NI_REV_MINOR":( (np.int16,), True),
     "HIERARCH NIFITS LIB_NAME":( (str,), True),
     "HIERARCH NIFITS LIB_REV":( (str,), True),
     "ORIGIN":( (str,), True),
@@ -71,10 +71,10 @@ reference_header = {
 
 class Test_Header(BaseNIFITSTestCase):
     def test_primary_header(self):
-        self.assertTrue("HIERARCH NIFITS NI_RMAJ" in self.nifits.header)
-        self.assertEqual(io.__standard_version_int__()[0], self.nifits.header["HIERARCH NIFITS NI_RMAJ"])
-        self.assertTrue("HIERARCH NIFITS NI_RMIN" in self.nifits.header)
-        self.assertEqual(io.__standard_version_int__()[1], self.nifits.header["HIERARCH NIFITS NI_RMIN"])
+        self.assertTrue("HIERARCH NIFITS NI_REV_MAJOR" in self.nifits.header)
+        self.assertEqual(io.__standard_version_int__()[0], self.nifits.header["HIERARCH NIFITS NI_REV_MAJOR"])
+        self.assertTrue("HIERARCH NIFITS NI_REV_MINOR" in self.nifits.header)
+        self.assertEqual(io.__standard_version_int__()[1], self.nifits.header["HIERARCH NIFITS NI_REV_MINOR"])
         self.assertEqual(len(self.nifits.get_version()), 2)# Checking versioning with 2 numbers
         self.assertEqual(self.nifits.get_version(), io.__standard_version_int__())
         print(self.nifits.header)

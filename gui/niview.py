@@ -34,8 +34,12 @@ def check_version_and_upgrade(anifits):
         A check for the file standard version.
     WARNING: this will be deprecated
     """
-    if "HIERARCH NIFITS NI_RMAJ" in anifits.header.keys:
-        a = anifits.header["HIERARCH NIFITS NI_RMAJ"] == 1
+    if "HIERARCH NIFITS NI_REV_MAJOR" in anifits.header.keys:
+        a = anifits.header["HIERARCH NIFITS NI_REV_MAJOR"] == 1
+    elif "HIERARCH NIFITS NI_RMAJ" in anifits.header.keys:
+        anifits.header.append(("HIERARCH NIFITS NI_REV_MAJOR", 1, "Major version number of nifits standard (int)"))
+        anifits.header.append(("HIERARCH NIFITS NI_REV_MINOR", 0, "Major version number of nifits standard (int)"))
+        a = anifits.header["HIERARCH NIFITS NI_REV_MAJOR"] == 1
     else:
         raise DeprecationWarning("At some point, support for V0 files will stop.")
         a = 0
