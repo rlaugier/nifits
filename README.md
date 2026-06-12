@@ -4,16 +4,15 @@
 
 Milestone: The NIFITS standard is now at its version 1.0 . Version 0 to 1 bring breaking changes for harmonization and future-proofing.
 
-Standards live and die by their community. In order to get in touch with our community. The NIFITS Hackathon organized in Summer 2025 was very important to help create a solid and inclusive community by helping you kickstart your own applications. We hope to arganize more similar events soon.
-
 Note that version 0.0.9 and standard 0.7 introduces a modification of the field of view function. The use of telescope diameter for `FOV_TELDIAM` in the Gaussian fiber model should be closer to a good approximation of the SM fiber spatial filter.
 
 ## The `nifits` package
 
-The `nifits` package has two roles:
+The `nifits` package has two main roles:
 
 * Help create and manipulate NIFITS files in python with the `io` module
 * Offer a simple backend to use the instrument *model in a kit* packaged within the files with the `backend` module.
+* The `extra` module brings a number of more advanced tools that can are not as mature.
 
 The documentation is a work in progress and can be found here: [API documentation](https://rlaugier.github.io/nifits_doc.github.io/)
 The basic functionalities of the package are demonstrated in the `examples/quick_start.ipynb` notebook.
@@ -25,6 +24,8 @@ This data standard aims to facilitate the exchange of nulling interferometry dat
 Nulling interferometry can take many forms. Simple Bracewell, Double Bracewell, Kernel Nuller, active chopping etc. For this reason, the data is useless without the corresponding description of the instrument.
 
 The work of this consortium will focus on laying out and demonstrating the principle of operation of the NIFITS standard, including the respective roles of *the creator* of files *the user* of files, and third party libraries.
+
+Standards live and die by their community. In order to get in touch with our community. The NIFITS Hackathon organized in Summer 2025 was very important to help create a solid and inclusive community by helping you kickstart your own applications. We hope to arganize more similar events soon.
 
 ## Definition of NIFITS 1.0
 
@@ -76,7 +77,10 @@ The work of this consortium will focus on laying out and demonstrating the princ
     - `SPEC_RES`, "", Optional
     - `HIERARCH NIFITS NULLERR`, "Representative null flux uncertainty (Jy)"
 
-### Deprecation in version 0.1.0 :
+### Deprecation in library version 0.1.0 :
+
+The following class properties are deprecated:
+
 * `arrcol` is deprecated. use `col_ar` instead
 * `appxy` is deprecated. use `ap_xy` instead
   
