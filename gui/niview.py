@@ -313,12 +313,14 @@ if file_in is not None:
             if hasattr(abe.nifits , "ni_iotags"):
                 if abe.nifits.ni_iotags is not None:
                     out_tag = abe.nifits.ni_iotags.output_type(i)
+                    output_label = f"Out {i} {out_tag}"
+                else:
+                    output_label = f"Out {i}"
             else :
                 out_tag = ""
             inj_throughput = np.abs(x_inj[frame_index,:,0])
             mod_throughput = np.abs(x_mod[frame_index,:,:])
             kappa = np.sum(kappa[:,:] * mod_throughput[:,:], axis=1)
-            output_label = f"Out {i} {out_tag}"
             plt.plot(abe.nifits.oi_wavelength.lambs, kappa, label=output_label)    
         plt.xlabel("Wavelength [m]")
         plt.ylabel(f"Equivalent total collecting power [$m^2$]")
@@ -337,6 +339,8 @@ if file_in is not None:
             if abe.nifits.ni_iotags is not None:
                 mylabels = [f"{i} {abe.nifits.ni_iotags.output_type(i)}"
                                         for i in range(mycatm.shape[1])]
+            else:
+                mylabels = [f"Out {i}" for i in range(mycatm.shape[1])]
         else:
             mylabels = [f"Out {i}" for i in range(mycatm.shape[1])]
         for i in range(10):
