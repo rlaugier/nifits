@@ -388,7 +388,7 @@ class NI_EXTENSION(object):
         """
         Returns and hdu object to save into fits
         
-        .. admonition::
+        .. admonition:: Note
         
             This also updates the header if dimension changes
         """
