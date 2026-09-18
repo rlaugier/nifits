@@ -2,9 +2,7 @@
 
 ## Breaking news:
 
-Milestone: The NIFITS standard is now at its version 1.0 . Version 0 to 1 bring breaking changes for harmonization and future-proofing.
-
-Note that version 0.0.9 and standard 0.7 introduces a modification of the field of view function. The use of telescope diameter for `FOV_TELDIAM` in the Gaussian fiber model should be closer to a good approximation of the SM fiber spatial filter.
+Milestone: The peer-reviewed paper is now available in open-access in [A&A](https://www.aanda.org/articles/aa/full_html/2026/09/aa58159-25/aa58159-25.html), and describes the version 1.0. This is big milestone and it marks the start of a stable phase and allow the deployment and the development of more applications.
 
 ## The `nifits` package
 
@@ -190,3 +188,8 @@ NIFITS is a development carried out in the context of the [SCIFY project](http:/
 
 
 Although this project has initially contained a branch of the OIFITS package from Paul Boley, the project has since evolved in entirely different implementation, and essentially all this original source code has disappeared.
+
+## Archive messages
+
+Note that version 0.0.9 and standard 0.7 introduces a modification of the field of view function. The use of telescope diameter for `FOV_TELDIAM` in the Gaussian fiber model should be closer to a good approximation of the SM fiber spatial filter.
+
