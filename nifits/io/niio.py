@@ -5,14 +5,7 @@ To open an existing NIFITS file, use ``nifits.from_nifits`` constructor.
 
 To save an NIFITS object to a file, use ``nifits.to_nifits`` method.
 
-A summary of the information in the oifits object can be obtained by
-using the info() method:
-
-   > import oifits
-   > oifitsobj = oifits.open('foo.fits')
-   > oifitsobj.info()
-
-For further information, contact R. Laugier
+For more detailed information, contact R. Laugier
 
 """
 
@@ -388,7 +381,7 @@ class NI_EXTENSION(object):
         """
         Returns and hdu object to save into fits
         
-        .. admonition::
+        .. admonition:: Note
         
             This also updates the header if dimension changes
         """
